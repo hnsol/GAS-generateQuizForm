@@ -148,7 +148,7 @@ function getYYMMDD_(dt) {
   var YY  = dt.getFullYear().toString().slice(-2); // "21"
   var MM  = ("0" + (dt.getMonth()+1)).slice(-2);   // "03"
   var DD  = ("0" + (dt.getDate())).slice(-2);      // "05"
-  return YY + MM + DD + "_";                        // "210305_"
+  return YY + MM + DD + "_";                       // "210305_"
 }
 
 /**
@@ -163,7 +163,7 @@ function getYYMMDD_(dt) {
  * 
  */
 function copyTemplateToNewForm(fileName) {
-  var fileName = String(fileName);
+  var FILE_NAME = String(fileName);
   
   // スクリプトプロパティを登録した
   var SF_URL = PropertiesService.getScriptProperties().getProperty('SOURCE_FORM_URL');
@@ -171,10 +171,10 @@ function copyTemplateToNewForm(fileName) {
   
   var sourceFile = DriveApp.getFileById(source_form.getId());
   var copiedFile = sourceFile.makeCopy();
-  copiedFile.setName(fileName);
+  copiedFile.setName(FILE_NAME);
 
   var form = FormApp.openById(copiedFile.getId());
-  form.setTitle(fileName);
+  form.setTitle(FILE_NAME);
   
   return form;
 }
@@ -207,11 +207,11 @@ function moveForm(form) {
 function setFormProperties(form, form_props) {
   var FORM_DESCRIP = form_props[1][1];    //概要
   var FORM_CNF_MSG = form_props[2][1];    //終了時メッセージ
-  var sheetId   = PropertiesService.getScriptProperties().getProperty('RESPONSE_SHEET_ID');
+  var SHEET_ID = PropertiesService.getScriptProperties().getProperty('RESPONSE_SHEET_ID');
 
   form.setDescription(FORM_DESCRIP)       // 説明文
     // スクリプトプロパティ化を行った
-    .setDestination(FormApp.DestinationType.SPREADSHEET, sheetId)
+    .setDestination(FormApp.DestinationType.SPREADSHEET, SHEET_ID)
     // 【全般タブ】
     .setCollectEmail(true)                // "メールアドレスを収集する" ON
     // 回答のコピーを送信 OFF
@@ -251,3 +251,4 @@ function addQAtoForm(form, qa) {
     item.createChoice(qa.choices[3][0], qa.choices[3][1]), 
     ]);                 // HACK: 直打ち、きれいな書き方を思いつけず
 }
+
