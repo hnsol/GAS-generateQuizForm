@@ -13,5 +13,5 @@ generate Quiz form by GAS, from Spread sheet
 
 ### problems in Spread Sheet
 
-![spreadsheet](https://i.gyazo.com/ef38102568419d154f41cc3f0d735a01.png)
+![spreadsheet](https://i.gyazo.com/41282d0fde2127a50b77791a42021ba0.png)
 
