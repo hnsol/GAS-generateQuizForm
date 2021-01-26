@@ -1,12 +1,15 @@
 # GAS-generateQuizForm
 generate Quiz form by GAS, from Spread sheet
 
-### overview
+### purpose
 
 - generate Quiz repeatedly on a regular basis
+
+### notes
+
 - problems are located in Google Spread Sheet
-- problems are supporsed to be only 4-choice question 
-- copy template form and add Q&A
+- problems are supporsed to be 4-choice question only
+- copy template-form, and add 3 Q&As
 
 ### problems in Spread Sheet
 
