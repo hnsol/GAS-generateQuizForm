@@ -113,8 +113,8 @@ function uniq(array) {
  * @return {Object} Q&Aオブジェクト
  * @customfunction
  * 
- * qa.title   = "好きな動物は？"
- * qa.corAns  = "ネコ"
+ * qa.title   = '好きな動物は？'
+ * qa.corAns  = 'ネコ'
  * qa.choices = [ ['イヌ', false], ['ネコ', true], ['ネズミ', false],['ヘビ', false] ]
  */
 function generateQA(problems, idx_of_row) {
@@ -137,18 +137,18 @@ function generateQA(problems, idx_of_row) {
 }
 
 /**
- * "YYMMDD_"形式の日付Stringを得る
+ * 'YYMMDD_'形式の日付Stringを得る
  *
  * @param {Object}  日付オブジェクト
- * @return {String} "YYMMDD_"形式の日付String
+ * @return {String} 'YYMMDD_'形式の日付String
  * @customfunction
  * 
  */
 function getYYMMDD_(dt) {
-  var YY  = dt.getFullYear().toString().slice(-2); // "21"
-  var MM  = ("0" + (dt.getMonth()+1)).slice(-2);   // "03"
-  var DD  = ("0" + (dt.getDate())).slice(-2);      // "05"
-  return YY + MM + DD + "_";                       // "210305_"
+  var YY  = dt.getFullYear().toString().slice(-2); // '21'
+  var MM  = ('0' + (dt.getMonth()+1)).slice(-2);   // '03'
+  var DD  = ('0' + (dt.getDate())).slice(-2);      // '05'
+  return YY + MM + DD + '_';                       // '210305_'
 }
 
 /**
@@ -213,17 +213,17 @@ function setFormProperties(form, form_props) {
     // スクリプトプロパティ化を行った
     .setDestination(FormApp.DestinationType.SPREADSHEET, SHEET_ID)
     // 【全般タブ】
-    .setCollectEmail(true)                // "メールアドレスを収集する" ON
+    .setCollectEmail(true)                // 'メールアドレスを収集する' ON
     // 回答のコピーを送信 OFF
-    .setLimitOneResponsePerUser(true)     // "回答を1回に制限する" ON
-    .setAllowResponseEdits(false)         // "送信後に編集" OFF
-    .setPublishingSummary(false)          // "概要グラフとテキストの回答を表示" OFF
+    .setLimitOneResponsePerUser(true)     // '回答を1回に制限する' ON
+    .setAllowResponseEdits(false)         // '送信後に編集' OFF
+    .setPublishingSummary(false)          // '概要グラフとテキストの回答を表示' OFF
     // 【プレゼンテーションタブ】
-    .setProgressBar(false)                // "進行状況バーを表示" OFF
-    .setShuffleQuestions(true)            // "質問の順序をシャッフルする" ON
+    .setProgressBar(false)                // '進行状況バーを表示' OFF
+    .setShuffleQuestions(true)            // '質問の順序をシャッフルする' ON
     .setConfirmationMessage(FORM_CNF_MSG) // 回答後メッセージをセット
     // 【テストタブ】
-    .setIsQuiz(true);                     // "テストにする"をON
+    .setIsQuiz(true);                     // 'テストにする'をON
     // 成績の表示 - 送信直後
     // 回答者が表示できる項目 - 不正解だった質問 ON 正解 ON 点数 ON
 }
@@ -235,7 +235,7 @@ function setFormProperties(form, form_props) {
  * @param {Object}  質問文と選択肢の入っているオブジェクト
  * @customfunction
  * 
- * qa.title   = "好きな動物は？"
+ * qa.title   = '好きな動物は？'
  * qa.choices = [ ['イヌ', false], ['ネコ', true], ['ネズミ', false],['ヘビ', false] ]
  */
 function addQAtoForm(form, qa) {
