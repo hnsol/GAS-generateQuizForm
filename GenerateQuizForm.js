@@ -71,39 +71,45 @@ function cleanupBody(problems) {
 /**
  * 重複のないN個のインデックス（行数）を取得する
  *
- * @param {Number}  何個のインデックスを返してほしいか
+ * @param {Number}  何個のインデックスを返してほしいか（N）
  * @param {Number}  インデックスの最大値
- * @return {Array}  インデックスを並べた配列
+ * @return {Array}  N個のインデックスを格納した配列
  * @customfunction
  * 
- * idxOfRows = [ 9, 3, 5 ]
+ * idxOfRows = [ 9, 3, 5 ]　（N=3のとき）
  */
 function pickupRows(numPicks, maxRows) {
-  var idxOfRows = [];
+  var arr = [...Array(maxRows).keys()]; // [1,2,3...,maxRows]
 
-  for (var i=1; i<=numPicks*2; i++) {
-    idxOfRows.push(Math.floor(Math.random()*maxRows));
-  } 
+  var ia = arr.length;
 
-  idxOfRows         = uniq(idxOfRows);
-  idxOfRows.length  = numPicks;
+  // Fisher–Yates shuffleアルゴリズム
+  while (ia) {
+    var ja  = Math.floor( Math.random() * ia );
+    var ta  = arr[--ia];  // arrのお尻から値を取る
+    arr[ia] = arr[ja];    // iaの値を、ランダム箇所の値にする 
+    arr[ja] = ta;         // ランダム箇所の値をiaの値にする（この2行でスワップ）
+  }
 
-  return idxOfRows;
+  arr.length = numPicks;
+
+  return arr;
+
 }
 
-/**
- * 配列から重複を取り除く
- *
- * @param {Array}   入力配列
- * @return {Array}  入力配列から重複を取り除いた配列
- * @customfunction
- * 
- * JavaScriptのArrayでuniqする8つの方法
- * https://qiita.com/piroor/items/02885998c9f76f45bfa0
- */
-function uniq(array) {
-  return [...new Set(array)];
-}
+// /**
+//  * 配列から重複を取り除く
+//  *
+//  * @param {Array}   入力配列
+//  * @return {Array}  入力配列から重複を取り除いた配列
+//  * @customfunction
+//  * 
+//  * JavaScriptのArrayでuniqする8つの方法
+//  * https://qiita.com/piroor/items/02885998c9f76f45bfa0
+//  */
+// function uniq(array) {
+//   return [...new Set(array)];
+// }
 
 /**
  * Q&Aを１つ作成する
