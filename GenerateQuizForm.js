@@ -50,7 +50,7 @@ function main() {
 function Problems(dataHead, dataBody) {
   this.dataHead = dataHead;
   this.dataBody = dataBody;
-  this.idx = { title:3, corAns:6, firstChoice:7, lastChoice:10}; // HACK:直打ち
+  this.idx = { title:3, corAns:6, feedback:5, firstChoice:7, lastChoice:10}; // HACK:直打ち
   // this.qa0 = {};
   // this.qa1 = {};
   // this.qa2 = {};
@@ -119,9 +119,10 @@ function uniq(array) {
  */
 function generateQA(problems, idx_of_row) {
   var qa = {};
-  qa.line     = problems.dataBody[idx_of_row]; // １行取得
+  qa.line     = problems.dataBody[idx_of_row];  // １行取得
   qa.title    = qa.line[problems.idx.title];    // 質問文
-  qa.corAns   = qa.line[problems.idx.corAns];  // 正答
+  qa.feedback = qa.line[problems.idx.feedback]; // フィードバック
+  qa.corAns   = qa.line[problems.idx.corAns];   // 正答
   qa.choices  = [];
 
   var ibg = problems.idx.firstChoice;
@@ -215,7 +216,8 @@ function setFormProperties(form, form_props) {
     // 【全般タブ】
     .setCollectEmail(true)                // 'メールアドレスを収集する' ON
     // 回答のコピーを送信 OFF
-    .setLimitOneResponsePerUser(true)     // '回答を1回に制限する' ON
+    // .setLimitOneResponsePerUser(true)     // '回答を1回に制限する' ON
+    .setLimitOneResponsePerUser(false)     // '回答を1回に制限する' OFF
     .setAllowResponseEdits(false)         // '送信後に編集' OFF
     .setPublishingSummary(false)          // '概要グラフとテキストの回答を表示' OFF
     // 【プレゼンテーションタブ】
@@ -237,6 +239,7 @@ function setFormProperties(form, form_props) {
  * 
  * qa.title   = '好きな動物は？'
  * qa.choices = [ ['イヌ', false], ['ネコ', true], ['ネズミ', false],['ヘビ', false] ]
+ * qa.feedback = 'よくできました！'
  */
 function addQAtoForm(form, qa) {
   const item = form.addMultipleChoiceItem();
@@ -250,5 +253,10 @@ function addQAtoForm(form, qa) {
     item.createChoice(qa.choices[2][0], qa.choices[2][1]), 
     item.createChoice(qa.choices[3][0], qa.choices[3][1]), 
     ]);                 // HACK: 直打ち、きれいな書き方を思いつけず
+  // 正解・不正解ともにおなじフィードバックコメントを表示させる
+  item.setFeedbackForCorrect(
+    FormApp.createFeedback().setText(qa.feedback).build());
+  item.setFeedbackForIncorrect(
+    FormApp.createFeedback().setText(qa.feedback).build());
 }
 
