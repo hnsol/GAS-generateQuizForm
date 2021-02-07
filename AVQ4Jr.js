@@ -22,11 +22,9 @@ function generateQuizandMail() {
  * @param {Object} config   設定値オブジェクト
  */
 function initConfig(shtName, config) {
-
   const ss      = SpreadsheetApp.getActiveSpreadsheet();
   const shtConfig = ss.getSheetByName(shtName);
-  // config        = convertSht2Obj(shtConfig);
-  // return config;
+
   return convertSht2Obj(shtConfig);
 }
 
@@ -37,22 +35,23 @@ function initConfig(shtName, config) {
  * @return {Object} obj   設定値オブジェクト
  */ 
 function convertSht2Obj(sheet) {
-  var array = sheet.getDataRange().getValues();
+  const array = sheet.getDataRange().getValues();
   array.shift();
-  var obj = new Object();
+  const obj = new Object();
   array.forEach( line => obj[line[0]] = line[1] );
+  
   return obj;
 }
 
-// クイズフォームを作成
+/**
+ * クイズフォームを作成します（フォーム + QA x n）
+ * @param {Object} config           設定値オブジェクト
+ * @return {string} shortenFormUrl  フォームの短縮URL
+ */ 
 function generateQuiz(config) {
 
-  // フォームオブジェクトを生成
-  // フォーム名称を作成してから、フォームオブジェクトを生成
-  var YMD  = getYYMMDD_(new Date());
-  // var NAME = form_props[0][1];
-  var NAME = config.formTitle;
-  var form = copyTemplateToNewForm(YMD + NAME, config);
+  // テンプレートからコピーしてフォームオブジェクトを生成
+  var form = copyTemplateToNewForm(config);
 
   // フォームのプロパティを設定
   setFormProperties(form, config);
@@ -69,8 +68,7 @@ function generateQuiz(config) {
 
 
   // QA作成のために、ランダムにn個の数字の配列を取得
-  // var idx_rows = pickupRows(+config.nuAQItems, +problems.dataBody.length);
-  var idxRows = pickupRows(+config.nmQAItems, +problems.dataBody.length);
+  const idxRows = pickupRows(+config.nmQAItems, +problems.dataBody.length);
 
   // QA作成（作成する数は、idxRowsの要素数）
   idxRows.forEach( idx => {
@@ -84,7 +82,85 @@ function generateQuiz(config) {
 
   return shortenFormUrl;
 }
- 
+
+
+/**
+ * テンプレートをコピーし、新しいフォームを作成します
+ * @param {Object} config   設定値オブジェクト
+ * @return {Object} form    新しくつくったフォームオブジェクト
+ * NOTE:いくつかの項目は、GASからセットできない（たとえば成績の表示 - 送信直後）
+ * そこでひながたで設定し、ひながたをコピーして設定を持ってきている。
+ */
+function copyTemplateToNewForm(config) {
+  // フォーム名称を作成してから、フォームオブジェクトを生成
+  const YMD       = getYYMMDD_(new Date());
+  const NAME      = config.formTitle;
+  const FILE_NAME = YMD + NAME;
+  const S_FORM_ID = config.idSourceF;
+
+  const sourceFile = DriveApp.getFileById(S_FORM_ID);
+  const copiedFile = sourceFile.makeCopy();
+  copiedFile.setName(FILE_NAME);
+
+  var form = FormApp.openById(copiedFile.getId());
+  form.setTitle(FILE_NAME); // ファイル名とフォームタイトルは一致させている
+  
+  return form;
+}
+
+/**
+ * 'YYMMDD_'形式の日付Stringを得る
+ * @param {Object}  dt  日付オブジェクト
+ * @return {String}     'YYMMDD_'形式の日付String
+ */
+function getYYMMDD_(dt) {
+  var YY  = dt.getFullYear().toString().slice(-2); // '21'
+  var MM  = ('0' + (dt.getMonth()+1)).slice(-2);   // '03'
+  var DD  = ('0' + (dt.getDate())).slice(-2);      // '05'
+  return YY + MM + DD + '_';                       // '210305_'
+}
+
+/**
+ * フォームのプロパティを設定します
+ * @param {Object} form   フォームオブジェクト
+ * @param {Object} config 設定値オブジェクト
+ */
+function setFormProperties(form, config) {
+  const cf = config;
+
+  // 途中コメントアウトされている行は、formオブジェクトのメソッドで設定できない項目
+  // NOTE:booleanを求められる項目は、ここで変換。このやり方がベストかどうか迷っている
+  form.setDescription(cf.formDscrp)                       // 説明文
+    .setDestination(FormApp.DestinationType.SPREADSHEET, cf.formDstnt) // 回答記録先
+    // 【全般タブ】
+    .setCollectEmail(toBoolean(cf.formCMail))             // 'メールアドレスを収集する'
+    // 回答のコピーを送信 OFF
+    .setLimitOneResponsePerUser(toBoolean(cf.formLORPU))  // '回答を1回に制限する'
+    .setAllowResponseEdits(toBoolean(cf.formAResE))       // '送信後に編集'
+    .setPublishingSummary(toBoolean(cf.formPubSm))        // '概要グラフとテキストの回答を表示'
+    // 【プレゼンテーションタブ】
+    .setProgressBar(toBoolean(cf.formPgBar))              // '進行状況バーを表示'
+    .setShuffleQuestions(toBoolean(cf.formShufQ))         // '質問の順序をシャッフルする'
+    .setConfirmationMessage(cf.formCfMsg)                 // 回答後メッセージ
+    // 【テストタブ】
+    .setIsQuiz(toBoolean(cf.formIsQuz));                  // 'テストにする'
+    // 成績の表示 - 送信直後
+    // 回答者が表示できる項目 - 不正解だった質問 ON 正解 ON 点数 ON
+
+}
+
+
+/**
+ * Booleanに変換
+ * @param {string} string 変換する文字列
+ * console.log(toBoolean('TRUE'));  // true
+ * console.log(toBoolean('True'));  // true
+ * console.log(toBoolean('False')); // false
+ * console.log(toBoolean(123));     // false
+ */
+function toBoolean(string) {
+  return string.toLowerCase() === 'true';
+}
 
 /**
  * 問題オブジェクトのコンストラクタ
@@ -92,13 +168,14 @@ function generateQuiz(config) {
 function Problems(dataHead, dataBody, config) {
   this.dataHead = dataHead;
   this.dataBody = dataBody;
+  // NOTE:ここでconfigからの値を設定するのがキレイとも思えないが、他の方法を思い付いていない
   this.idx = { 
     title: config.pbidTitle,
     corAns: config.pbidCorAn,
     feedback: config.pbidFeedB,
     firstChoice: config.pbidFrstC,
     lastChoice: config.pbidLastC
-  }; // NOTE:ここで設定するのがキレイだとも思えないが、他の方法を思い付いていない
+  };
 }
 
 /**
@@ -127,13 +204,10 @@ function cleanupBody(problems) {
 
 /**
  * 重複のないN個のインデックス（行数）を取得する
- *
- * @param {Number}  何個のインデックスを返してほしいか（N）
- * @param {Number}  インデックスの最大値
- * @return {Array}  N個のインデックスを格納した配列
- * @customfunction
- * 
- * idxOfRows = [ 9, 3, 5 ]　（N=3のとき）
+ * @param {number}  numPicks 何個のインデックスを返してほしいか（N）
+ * @param {number}  maxRows  インデックスの最大値
+ * @return {Array}  arr      N個のインデックスを格納した配列
+ * 例:idxOfRows = [ 9, 3, 5 ]　（N=3のとき）
  */
 function pickupRows(numPicks, maxRows) {
   var arr = [...Array(maxRows).keys()]; // [1,2,3...,maxRows]
@@ -155,118 +229,18 @@ function pickupRows(numPicks, maxRows) {
 
 
 /**
- * 'YYMMDD_'形式の日付Stringを得る
+ * Q&Aを１つ作成します
+ * @param {Object}  problems  問題オブジェクト  
+ * @param {Number}  idxRow    使用する行
+ * @return {Object} qa        Q&Aオブジェクト
  *
- * @param {Object}  日付オブジェクト
- * @return {String} 'YYMMDD_'形式の日付String
- * @customfunction
- * 
- */
-function getYYMMDD_(dt) {
-  var YY  = dt.getFullYear().toString().slice(-2); // '21'
-  var MM  = ('0' + (dt.getMonth()+1)).slice(-2);   // '03'
-  var DD  = ('0' + (dt.getDate())).slice(-2);      // '05'
-  return YY + MM + DD + '_';                       // '210305_'
-}
-
-/**
- * テンプレートをコピーし、新しいフォームを作成する
- * いくつかの項目は、GASからセットできない。
- * （たとえば成績の表示 - 送信直後）
- * テンプレートでセットしておいて、設定をコピーする必要がある。
- * @param {String}  ファイル名＝フォーム名
- * @return {Object} 新しくつくったフォームオブジェクト
- */
-function copyTemplateToNewForm(fileName, config) {
-  const FILE_NAME = String(fileName);
-  const S_FORM_ID = config.idSourceF;
-
-  const sourceFile = DriveApp.getFileById(S_FORM_ID);
-  const copiedFile = sourceFile.makeCopy();
-  copiedFile.setName(FILE_NAME);
-
-  var form = FormApp.openById(copiedFile.getId());
-  form.setTitle(FILE_NAME); // ファイル名とフォームタイトルは一致させている
-  
-  return form;
-}
-
-/**
- * フォームを特定のフォルダに移動する（FOLDER_ID）
- * コピーをFOLDER_IDに作成し、マイドライブのものを消している
- * （他に方法はないのか？）
- * FOLDER_IDはスクリプトプロパティ
- *
- * @param {Object}  フォームオブジェクト
- * @customfunction
- * 
- */
-function moveForm(form) {
-  var F_ID = PropertiesService.getScriptProperties().getProperty('FOLDER_ID');
-  var formFile = DriveApp.getFileById(form.getId());
-  DriveApp.getFolderById(F_ID).addFile(formFile);
-  DriveApp.getRootFolder().removeFile(formFile);
-}
-
-/**
- * フォームのプロパティを設定する
- *
- * @param {Object}  フォームオブジェクト
- * @param {Array}   フォームプロパティの入っている配列
- * @customfunction
- * 
- */
-function setFormProperties(form, config) {
-  const cf = config;
-
-  // 途中コメントアウトされている行は、スクリプトで設定できない項目
-  // NOTE:booleanを求められる項目は、ここで変換している。ベストかどうか迷っている
-  form.setDescription(cf.formDscrp)                       // 説明文
-    .setDestination(FormApp.DestinationType.SPREADSHEET, cf.formDstnt) // 回答記録先
-    // 【全般タブ】
-    .setCollectEmail(toBoolean(cf.formCMail))             // 'メールアドレスを収集する'
-    // 回答のコピーを送信 OFF
-    .setLimitOneResponsePerUser(toBoolean(cf.formLORPU))  // '回答を1回に制限する'
-    .setAllowResponseEdits(toBoolean(cf.formAResE))       // '送信後に編集'
-    .setPublishingSummary(toBoolean(cf.formPubSm))        // '概要グラフとテキストの回答を表示'
-    // 【プレゼンテーションタブ】
-    .setProgressBar(toBoolean(cf.formPgBar))              // '進行状況バーを表示'
-    .setShuffleQuestions(toBoolean(cf.formShufQ))         // '質問の順序をシャッフルする'
-    .setConfirmationMessage(cf.formCfMsg)                 // 回答後メッセージ
-    // 【テストタブ】
-    .setIsQuiz(toBoolean(cf.formIsQuz));                  // 'テストにする'
-    // 成績の表示 - 送信直後
-    // 回答者が表示できる項目 - 不正解だった質問 ON 正解 ON 点数 ON
-
-}
-
-
-/**
- * Booleanに変換
- * console.log(toBoolean('TRUE')); // true
- * console.log(toBoolean('True')); // true
- * console.log(toBoolean('False')); // false
- * console.log(toBoolean(123)); // false
- */
-function toBoolean(string) {
-  return string.toLowerCase() === 'true';
-}
-
-/**
- * Q&Aを１つ作成する
- *
- * @param {Object}  問題オブジェクト  
- * @param {Number}  使用する行
- * @return {Object} Q&Aオブジェクト
- * @customfunction
- * 
  * qa.title   = '好きな動物は？'
  * qa.corAns  = 'ネコ'
  * qa.choices = [ ['イヌ', false], ['ネコ', true], ['ネズミ', false],['ヘビ', false] ]
  */
-function generateQA(problems, idx_of_row) {
-  var qa = {};
-  qa.line     = problems.dataBody[idx_of_row];  // １行取得
+function generateQA(problems, idxRow) {
+  const qa = {};
+  qa.line     = problems.dataBody[idxRow];      // １行取得
   qa.title    = qa.line[problems.idx.title];    // 質問文
   qa.feedback = qa.line[problems.idx.feedback]; // フィードバック
   qa.corAns   = qa.line[problems.idx.corAns];   // 正答
@@ -286,11 +260,10 @@ function generateQA(problems, idx_of_row) {
 }
 
 /**
- * ラジオボタン形式の質問を作成する
- *
- * @param {Object}  フォームオブジェクト
- * @param {Object}  質問文と選択肢の入っているオブジェクト
- * @customfunction
+ * ラジオボタン形式の質問を作成します
+ * @param {Object} from   フォームオブジェクト
+ * @param {Object} qa     質問文と選択肢の入っているオブジェクト
+ * @param {Object} config 設定値オブジェクト
  * 
  * qa.title   = '好きな動物は？'
  * qa.choices = [ ['イヌ', false], ['ネコ', true], ['ネズミ', false],['ヘビ', false] ]
@@ -299,10 +272,10 @@ function generateQA(problems, idx_of_row) {
 function addQAtoForm(form, qa, config) {
   const item = form.addMultipleChoiceItem();
   item
-  .setRequired(toBoolean(config.itemRqird))    // 回答の'必須'
-  .setPoints(+config.itemPoint)      // 点数
-  .setTitle(qa.title)
-  // HACK: 直打ち、きれいな書き方を思いつけず
+  .setRequired(toBoolean(config.itemRqird)) // 回答の'必須'
+  .setPoints(+config.itemPoint)             // 点数
+  .setTitle(qa.title)                       // 質問文
+  // HACK:直打ち、きれいな書き方を思いつけず      //選択肢
   .setChoices([
     item.createChoice(qa.choices[0][0], qa.choices[0][1]), 
     item.createChoice(qa.choices[1][0], qa.choices[1][1]), 
@@ -319,8 +292,9 @@ function addQAtoForm(form, qa, config) {
 
 /**
  * 作成されたフォームURLをメールで通知する
+ * @param {string} url    フォームURL
+ * @param {Object} config 設定値オブジェクト
  */
-
 function sendUrlbyMail(url, config) {
 
   const recipient = config.mailRcpnt;
@@ -337,4 +311,37 @@ function sendUrlbyMail(url, config) {
   }
 
   GmailApp.sendEmail(recipient, subject, body, options);
+}
+
+
+/**
+ * 設定シートのボタンの動作を記述します
+ * TODO: DRY原則に反しているので気持ち悪いと思っていますが、とりあえずこのまま……
+ */
+function buttonOnConfigSht() {
+
+  // 開始確認（OKボタン以外は処理を中断）
+  var ui = SpreadsheetApp.getUi();
+  var response = ui.alert(
+    'フォーム作成の開始',
+    'クイズフォームの作成を開始します。よろしいですか？',
+    ui.ButtonSet.OK_CANCEL
+    );
+  if (response !== ui.Button.OK) return;
+
+  // 'config'から設定値を取得;
+  var config = {};
+  config = initConfig('config', config);
+
+  // クイズを作成
+  // NOTE:クイズ = フォーム + QAs = フォーム + QA1 + ... + QAn
+  var formUrl = generateQuiz(config);
+
+  // 終了メッセージ
+  var response = ui.alert(
+    '完了しました！',
+    'フォーム作成が完了しました。ご確認ください。',
+    ui.ButtonSet.OK
+    );
+
 }
