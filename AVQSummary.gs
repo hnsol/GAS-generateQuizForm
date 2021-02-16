@@ -188,6 +188,8 @@ function sendShtEachAdress(array, rowsExt, config) {
 
   // スプレッドシート（CSV）を作成
   // blobでつくるが、ドライブに置いたりはしない
+  // ファイル名の文字列を作成すること（@より左、日付、SJISなど）
+
   const csv  = arrFltd.reduce((str, row) => str + '\n' + row);
   const blob = Utilities.newBlob('', MimeType.CSV, 'testdata_S-JIS.csv')
     .setDataFromString(csv, 'Shift-JIS');
