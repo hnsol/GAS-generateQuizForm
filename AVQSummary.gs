@@ -69,8 +69,9 @@ function firstTrial() {
     });
 
     // 問題ID配列→問題DB行（row）→正答の順にマッピング
-    const qca = qid.map( val => arrQdbT[config.pbidPbuid].indexOf(val))
-                   .map( row => arrQdb[row][config.pbidCorAn] )
+    const qca =
+      qid.map( val => arrQdbT[config.pbidPbuid].indexOf(val))
+        .map( row => arrQdb[row][config.pbidCorAn] )
 
     arr.forEach( line => line.push(...qca) );
   })
@@ -120,18 +121,20 @@ function firstTrial() {
   arrRes.unshift(config.respSShHd);
   const arrSmr = extractRows(arrRes, config.respSSrod);
 
+  // メールで各人に送る
+  sendShtEachAdress(arrSmr, config.respSSrod, config);  
 
-  const shtSmr = ssRes.getSheetByName(config.respSShNa);
-  shtSmr.clear();
-  shtSmr
-    .getRange(1, 1, arrSmr.length, arrSmr[0].length)
-    .setNumberFormat('@')
-    .setValues(arrSmr);
+  // サマリーシートに書き出し 
+  // これは残すか？要検討
+  // const shtSmr = ssRes.getSheetByName(config.respSShNa);
+  // shtSmr.clear();
+  // shtSmr
+  //   .getRange(1, 1, arrSmr.length, arrSmr[0].length)
+  //   .setNumberFormat('@')
+  //   .setValues(arrSmr);
 
-  // arrSmr.forEach( line => shtSmr.appendRow(line) );
 
-
-  console.log('here');
+  // console.log('here');
 
 }
 
@@ -153,4 +156,61 @@ function extractRows(array, rowsExt) {
   // 行列を入れ替えてリターン
   return transpose(arrayCT);
 }
+
+/**
+ * メールで各人に送ります
+ */
+function sendShtEachAdress(array, rowsExt, config) {
+
+  // メールアドレスの配列を抽出
+  // （これからかく）
+  // それぞれのメアドから送付対象配列を作成
+  // （これからかく）
+
+  // ダミー：あるメアドから送付対象配列を作成
+  const dummyMail = 'xxxxx@xxxxxx.co.jp';
+  const dummyMaCc = 'yyyyy@yyyyyy.co.jp';
+
+  const arrHead = array.shift();
+  const arrFltd = array.filter( line => {
+    return line[3] === dummyMail;
+    });
+
+  arrFltd.unshift(arrHead);
+
+  // 暫定措置、改行を取り除く　←　データの持たせ方を再考する必要がある
+  arrFltd.forEach( (line, idRow) => {
+    line.forEach( (value, idCol) => {
+      // console.log(value, value.toString().replace(/\n+/g, '!'));
+      arrFltd[idRow][idCol] = value.toString().replace(/\n+/g, '');
+    })
+  })
+
+  // スプレッドシート（CSV）を作成
+  // blobでつくるが、ドライブに置いたりはしない
+  const csv  = arrFltd.reduce((str, row) => str + '\n' + row);
+  const blob = Utilities.newBlob('', MimeType.CSV, 'testdata_S-JIS.csv')
+    .setDataFromString(csv, 'Shift-JIS');
+
+  // メールで送付
+  const recipient = dummyMail;
+  const subject   = 'test: sending csv...';
+
+  let body = '';
+  body += 'テストメールです\n';
+  body += '添付でCSVを送ります';
+  
+  const options = {
+    cc: dummyMaCc,
+    noReply: toBoolean(config.mailOnorp),
+    attachments: blob
+  };
+
+  GmailApp.sendEmail(recipient, subject, body, options);
+
+}
+
+
+
+
 
