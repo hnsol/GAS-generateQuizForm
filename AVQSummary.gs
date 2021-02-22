@@ -2,34 +2,43 @@
 // とりあえず動くコードになっている
 // 集計シートのプロトタイプを見てもらうためのもの
 
-function firstTrial() {
-  // 変数の名付けにあたってのローカルルール
-  // arr:2次元配列 arr3:3次元配列
-  // ss:スプレッドシート　sht:単体のシート shts:複数のシート
 
+// 変数の名付けにあたってのローカルルール
+// arr:2次元配列 arr3:3次元配列
+// ss:スプレッドシート　sht:単体のシート shts:複数のシート
+
+/**
+ * 回答(DB)を集約します
+ * 頻度A→シートに全部書き出し　のみ
+ * 頻度B→シートに書き出し＋　人ごとに集約してメール送付
+ * TODO: パラメータを渡して動作を変えられるようにしておく
+ */
+// function firstTrial() {
+function aggregateResponse() {
   // transpose関数 // NOTE:ここがいいのか？
   const transpose = a => a[0].map((_, c) => a.map(r => r[c]));
 
-  // 'config'から設定値を取得;
+  // 'config'から設定値を取得し、必要なものは配列化
   var config = {};
   config = initConfig('config', config);
   config.respSShHd = config.respSShHd.split(','); // HACK:配列化
   config.respSSrod = config.respSSrod.split(','); // HACK:配列化
-  // console.log(config.respSShHd);
-  // console.log(config.respSSrod);
 
+  // TODO: 配列取得系は、関数にまとめる
   // 問題DBから配列を取得
   const shtQdb  = SpreadsheetApp.openById(config.idPrblmDB);
   const arrQdb  = shtQdb.getSheetByName(config.quizDBSht).getDataRange().getValues();
   const arrQdbT = transpose(arrQdb);
 
   // 回答DBから配列を取得
+
+  // ①まずは対象シートオブジェクトをつくる
   const ssRes   = SpreadsheetApp.openById(config.formDstnt);
   const shtsRes = ssRes.getSheets();
   // 集計シートは配列取得対象から取り除いておく
   const shtsResR = shtsRes.filter( sht => sht.getName() !== config.respSShNa );
 
-  // フォームタイトルを取得してオブジェクト化しておく
+  // ②フォームタイトルを取得してオブジェクト化しておく
   const objFormTitle = {};
   shtsResR.forEach( sht => {
     const form = FormApp.openByUrl(sht.getFormUrl());
@@ -37,7 +46,7 @@ function firstTrial() {
     objFormTitle[sht.getName()] = form.getTitle();
   });
 
-  // 回答DBから配列を取得し、このタイミングでシート名とフォームタイトルを右列に追加
+  // ③回答DBから配列を取得し、このタイミングでシート名とフォームタイトルを右列に追加
   const arr3Res = [];
   let arr = [];
   shtsResR.forEach( sht => {
@@ -52,6 +61,8 @@ function firstTrial() {
     }
   } );
 
+  // TODO: ここから配列に対する変換処理になるので、関数にまとめる
+  // ③は変換処理に該当するのか？要検討
 
   // 回答DBの各シートに対し、各行の右側に＜問題文＞を追加
   // NOTE: 問題文がヘッダのどの列にあるかは、configで設定
@@ -86,6 +97,7 @@ function firstTrial() {
     })
   })
   
+  // 3次元配列→2次元配列
   // 回答DBの各シートに対し、ヘッダ行を取り除く
   arr3Res.forEach( arr => arr.shift() );
  
@@ -120,6 +132,7 @@ function firstTrial() {
   // ヘッダ行追加
   arrRes.unshift(config.respSShHd);
   const arrSmr = extractRows(arrRes, config.respSSrod);
+
 
   // メールで各人に送る
   sendShtEachAdress(arrSmr, config.respSSrod, config);  
@@ -168,8 +181,8 @@ function sendShtEachAdress(array, rowsExt, config) {
   // （これからかく）
 
   // ダミー：あるメアドから送付対象配列を作成
-  const dummyMail = 'xxxxx@xxxxxx.co.jp';
-  const dummyMaCc = 'yyyyy@yyyyyy.co.jp';
+  const dummyMail = 'k-watabe@avergence.co.jp';
+  const dummyMaCc = 'm-iida@avergence.co.jp';
 
   const arrHead = array.shift();
   const arrFltd = array.filter( line => {
@@ -188,13 +201,13 @@ function sendShtEachAdress(array, rowsExt, config) {
 
   // スプレッドシート（CSV）を作成
   // blobでつくるが、ドライブに置いたりはしない
-  // ファイル名の文字列を作成すること（@より左、日付、SJISなど）
-
+  // TODO: ファイル名の文字列を作成すること（@より左、日付、SJISなど）
   const csv  = arrFltd.reduce((str, row) => str + '\n' + row);
   const blob = Utilities.newBlob('', MimeType.CSV, 'testdata_S-JIS.csv')
     .setDataFromString(csv, 'Shift-JIS');
 
   // メールで送付
+  // TODO: いろいろベタ打ちなので直すこと
   const recipient = dummyMail;
   const subject   = 'test: sending csv...';
 
@@ -211,8 +224,3 @@ function sendShtEachAdress(array, rowsExt, config) {
   GmailApp.sendEmail(recipient, subject, body, options);
 
 }
-
-
-
-
-
