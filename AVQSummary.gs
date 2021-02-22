@@ -1,111 +1,138 @@
-// NOTE:まったく関数化などしておらず、
-// とりあえず動くコードになっている
-// 集計シートのプロトタイプを見てもらうためのもの
-
-
 // 変数の名付けにあたってのローカルルール
 // arr:2次元配列 arr3:3次元配列
 // ss:スプレッドシート　sht:単体のシート shts:複数のシート
 
 /**
- * 回答(DB)を集約します
+ * 回答(DB)を集約してフィードバックに使用できるようにします
  * 頻度A→シートに全部書き出し　のみ
  * 頻度B→シートに書き出し＋　人ごとに集約してメール送付
  * TODO: パラメータを渡して動作を変えられるようにしておく
  */
 // function firstTrial() {
-function aggregateResponse() {
-  // transpose関数 // NOTE:ここがいいのか？
-  const transpose = a => a[0].map((_, c) => a.map(r => r[c]));
+function generateFbSheetandMail() {
 
   // 'config'から設定値を取得し、必要なものは配列化
+  // TODO: エラーチェックも入れたいので、初期作業は関数化
+  // 仮定していること……集計シートの存在、各シートの存在
   var config = {};
   config = initConfig('config', config);
   config.respSShHd = config.respSShHd.split(','); // HACK:配列化
   config.respSSrod = config.respSSrod.split(','); // HACK:配列化
 
-  // TODO: 配列取得系は、関数にまとめる
+  // 回答を集約し、配列にして返す
+  const arrSmr = aggregateRespose(config);
+
+  // 回答を集計シートに書き込み
+  generateFbSheet(arrSmr, config);
+
+  // 回答をメールで送付
+  sendShtEachAdress(arrSmr, config);  
+
+}
+
+/**
+ * 回答DBを集約し、配列化します
+ * @param {Object} config   設定値オブジェクト
+ * @return {Array} arrSmr   集約済み配列
+ * NOTE: ここはfunctionに切り分けないほうが見通しがいいと思われる
+ */
+function aggregateRespose(config) {
+
+  // transpose関数 // NOTE: 関数化したほうがいい気もするが、ラクなのでこういう使いかたを……
+  const transpose = a => a[0].map((_, c) => a.map(r => r[c]));
+
   // 問題DBから配列を取得
   const shtQdb  = SpreadsheetApp.openById(config.idPrblmDB);
   const arrQdb  = shtQdb.getSheetByName(config.quizDBSht).getDataRange().getValues();
   const arrQdbT = transpose(arrQdb);
 
-  // 回答DBから配列を取得
+  // 【A: 回答DBから配列を取得】
 
-  // ①まずは対象シートオブジェクトをつくる
+  // A-1 まずは配列化対象シートのオブジェクトをつくる
   const ssRes   = SpreadsheetApp.openById(config.formDstnt);
   const shtsRes = ssRes.getSheets();
-  // 集計シートは配列取得対象から取り除いておく
+  // NOTE: 集計シートは配列取得対象から取り除いておく（R:Removed）
   const shtsResR = shtsRes.filter( sht => sht.getName() !== config.respSShNa );
 
-  // ②フォームタイトルを取得してオブジェクト化しておく
+  // A-2 フォームタイトルを取得してオブジェクト化しておく
+  // ex: objFormTitle = { フォームの回答 1: '210207_keikoチャレンジ', ... }
   const objFormTitle = {};
   shtsResR.forEach( sht => {
     const form = FormApp.openByUrl(sht.getFormUrl());
-    // like フォームの回答 1: '210207_keikoチャレンジ（仮称）'
     objFormTitle[sht.getName()] = form.getTitle();
   });
 
-  // ③回答DBから配列を取得し、このタイミングでシート名とフォームタイトルを右列に追加
+  // A-3 回答DBから配列を取得し、このタイミングでシート名とフォームタイトルを右列に追加
   const arr3Res = [];
   let arr = [];
   shtsResR.forEach( sht => {
-    arr = sht.getDataRange().getValues();
-    if (arr.length > 1) {
+    arr = sht.getDataRange().getValues(); // 1枚のシートを2次元配列に格納
+    if (arr.length > 1) {                 // シートが空の場合は配列化しない（未回答は配列化する）
       arr.forEach( line => {
-        const sn = sht.getName();
-        line.push(sn);
-        line.push(objFormTitle[sn]);
+        const shtName = sht.getName();
+        line.push(shtName);               // シート名を右列に追加 
+        line.push(objFormTitle[shtName]); // フォームタイトルを右列に追加
       })
-      arr3Res.push(arr);
+      arr3Res.push(arr);                  // 3次元配列に格納（シートx行x列）
     }
-  } );
-
-  // TODO: ここから配列に対する変換処理になるので、関数にまとめる
-  // ③は変換処理に該当するのか？要検討
-
-  // 回答DBの各シートに対し、各行の右側に＜問題文＞を追加
-  // NOTE: 問題文がヘッダのどの列にあるかは、configで設定
-  arr3Res.forEach( arr => {
-    const qtx = arr[0].slice(+config.respChBgn, +config.respChEnd);
-    arr.forEach( line => line.push(...qtx) );
   });
 
-  // 回答DBの各シートに対し、各行の右側に＜正答＞を追加
-  arr3Res.forEach( arr => {
-    // 問題IDを配列化 // NOTE:文字列は置き換えられない？ので、arrを陽に指定
+ 
+  // 【B: 配列をアウトプットに向けて変換する】
+
+  // B-1 回答DBの各シートに対し、各行の最右列に＜問題文＞を追加
+  // NOTE: 問題文は必ずヘッダ行にある。どの列にあるかはconfigで指定している
+  arr3Res.forEach( arr => {           // シートを取り出してarrに格納
+
+    // ヘッダ行から問題文列を取得し配列化
+    const qtx = arr[0].slice(+config.respChBgn, +config.respChEnd); 
+    
+    // arrの各行の最右列に＜問題文＞を追加
+    arr.forEach( line => line.push(...qtx) ); 
+  });
+
+  // B-2 回答DBの各シートに対し、各行の最右列に＜正答＞を追加
+  arr3Res.forEach( arr => {           // シートを取り出してarrに格納
+
+    // ヘッダ行問題文列を取得し配列化
     const qid = arr[0].slice(+config.respChBgn, +config.respChEnd);
+
+    // 問題文列から、問題IDを取得し配列化　ex: [No:ABCD] -> ABCD
     qid.forEach( (val, idx, arr) => {
       arr[idx] = val.substring(config.respQIDBg, config.respQIDEn);
     });
 
-    // 問題ID配列→問題DB行（row）→正答の順にマッピング
+    // 問題ID配列→問題DB行（row）→正答の順にmap。どの列にあるかはconfigで指定
     const qca =
       qid.map( val => arrQdbT[config.pbidPbuid].indexOf(val))
         .map( row => arrQdb[row][config.pbidCorAn] )
 
+    // arrの各行の最右列に＜正答＞を追加
     arr.forEach( line => line.push(...qca) );
   })
 
-  // 回答DBの各シートに対し、各行の右側に＜マルバツ＞を追加
-  // HACK:ここはめちゃめちゃ手打ち
+  // B-3 回答DBの各シートに対し、各行の右側に＜マルバツ＞を追加
+  // TODO:ここはめちゃめちゃ手打ち、config化をすべきとは思う……
   arr3Res.forEach( arr => {
     arr.forEach( line => {
-      line.push( (line[3] == line[11])? '◯' : '✕' )
-      line.push( (line[4] == line[12])? '◯' : '✕' )
-      line.push( (line[5] == line[13])? '◯' : '✕' )
+      line.push( (line[3] == line[11])? '◯' : '×' )
+      line.push( (line[4] == line[12])? '◯' : '×' )
+      line.push( (line[5] == line[13])? '◯' : '×' )
     })
   })
   
-  // 3次元配列→2次元配列
-  // 回答DBの各シートに対し、ヘッダ行を取り除く
+
+  // 【C: 3次元配列→2次元配列とし、アウトプットできるよう仕上げる】
+
+  // C-1 回答DBの各シートに対し、ヘッダ行を取り除く
   arr3Res.forEach( arr => arr.shift() );
  
-  // 回答DBの各シートの、ボディ行を１枚のシートにくっつける
+  // C-2 回答DBの各シートの、ボディ行を１枚のシートにくっつける
   const arrRes = []; 
   arr3Res.forEach( arr => arrRes.push(...arr) );
 
-  // ボディ行になった配列をソート
+  // C-3 ボディ行のみになった配列をソート
+  // TODO: ソート対象が手打ちなので、config化を行うこと
   let sc = new Number;
   // 配列をsc列で昇順でソート（sc: Sort Column）
   sc = 0; // 回答日付
@@ -122,34 +149,21 @@ function aggregateResponse() {
 	  return 0;
   });
 
-
-  // 書き出し用配列に変換
-  // 日付を修正（データを壊している可能性に注意）
+  // C-4 日付を修正（破壊的変換であることに注意）、
   arrRes.forEach( line => {
-    //console.log(Utilities.formatDate(line[0], 'Asia/Tokyo', 'yyyy/MM/dd HH:mm:ss'));
     line[0] = Utilities.formatDate(line[0], 'Asia/Tokyo', 'yyyy/MM/dd HH:mm:ss');
   });
-  // ヘッダ行追加
+
+  // C-5 ヘッダ行を追加（文字列はconfigで指定している）
   arrRes.unshift(config.respSShHd);
+
+  // C-6 残す列を選択し、順番も入れ替え（configで指定している）
   const arrSmr = extractRows(arrRes, config.respSSrod);
 
-
-  // メールで各人に送る
-  sendShtEachAdress(arrSmr, config.respSSrod, config);  
-
-  // サマリーシートに書き出し 
-  // これは残すか？要検討
-  // const shtSmr = ssRes.getSheetByName(config.respSShNa);
-  // shtSmr.clear();
-  // shtSmr
-  //   .getRange(1, 1, arrSmr.length, arrSmr[0].length)
-  //   .setNumberFormat('@')
-  //   .setValues(arrSmr);
-
-
-  // console.log('here');
+  return arrSmr;
 
 }
+
 
 /**
  * 必要な行を抽出します
@@ -170,10 +184,35 @@ function extractRows(array, rowsExt) {
   return transpose(arrayCT);
 }
 
+
+/**
+ * 回答を集計シートに書き込みます
+ * @param {Array} arrSmr     操作対象の2次元配列
+ * @param {Object} config   設定値オブジェクト
+ */
+function generateFbSheet(arrSmr, config) {
+
+  // シートをIDで指定
+  const ssRes   = SpreadsheetApp.openById(config.formDstnt);
+
+  // シートに書き込み：シートが存在していることを仮定している
+  // NOTE: 過去データを履歴に残しておきたいので、シート削除→新規作成は*しない*
+  const shtSmr = ssRes.getSheetByName(config.respSShNa);
+  shtSmr.clear();
+  shtSmr
+    .getRange(1, 1, arrSmr.length, arrSmr[0].length)
+    .setNumberFormat('@') // 文字列であることを指定
+    .setValues(arrSmr);
+
+}
+
+
 /**
  * メールで各人に送ります
+ * @param {Array} array     操作対象の2次元配列
+ * @param {Object} config   設定値オブジェクト
  */
-function sendShtEachAdress(array, rowsExt, config) {
+function sendShtEachAdress(array, config) {
 
   // メールアドレスの配列を抽出
   // （これからかく）
@@ -181,7 +220,7 @@ function sendShtEachAdress(array, rowsExt, config) {
   // （これからかく）
 
   // ダミー：あるメアドから送付対象配列を作成
-  const dummyMail = 'k-watabe@avergence.co.jp';
+  const dummyMail = 'm-iida@avergence.co.jp';
   const dummyMaCc = 'm-iida@avergence.co.jp';
 
   const arrHead = array.shift();
@@ -224,3 +263,22 @@ function sendShtEachAdress(array, rowsExt, config) {
   GmailApp.sendEmail(recipient, subject, body, options);
 
 }
+
+
+/**
+ * 新規シートをかしこく挿入します
+ * @param {string} shtName  新規シートの名前
+ * @return {Object}         作成した新規シートオブジェクト
+ */
+function smartInsSheet(shtName) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  // コピー先のシートがすでに存在する場合は、削除する
+  var prevSht = ss.getSheetByName(shtName);
+  if (prevSht !== null) ss.deleteSheet(prevSht);
+
+  ss.insertSheet(shtName, ss.getNumSheets());
+
+  return ss.getSheetByName(shtName);
+}
+
