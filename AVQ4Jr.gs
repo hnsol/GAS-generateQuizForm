@@ -76,6 +76,9 @@ function generateQuiz(config) {
     addQAtoForm(form, problems.qa, config);
   });
 
+  // 出題記録を作成
+  recordQAFormHistory(form, config);
+
   // フォーム回答ページのURL（短縮）を取得
   const publishedUrl = form.getPublishedUrl();
   const shortenFormUrl = form.shortenFormUrl(publishedUrl);
@@ -170,6 +173,7 @@ function Problems(dataHead, dataBody, config) {
   this.dataBody = dataBody;
   // NOTE:ここでconfigからの値を設定するのがキレイとも思えないが、他の方法を思い付いていない
   this.idx = { 
+    unqid: config.pbidPbuid,
     title: config.pbidTitle,
     corAns: config.pbidCorAn,
     feedback: config.pbidFeedB,
@@ -241,7 +245,10 @@ function pickupRows(numPicks, maxRows) {
 function generateQA(problems, idxRow) {
   const qa = {};
   qa.line     = problems.dataBody[idxRow];      // １行取得
-  qa.title    = qa.line[problems.idx.title];    // 質問文
+  qa.title    = '[No:';
+  qa.title   += qa.line[problems.idx.unqid];    // 問題UID
+  qa.title   += ']' + '\n\n';
+  qa.title   += qa.line[problems.idx.title];    // 質問文
   qa.feedback = qa.line[problems.idx.feedback]; // フィードバック
   qa.corAns   = qa.line[problems.idx.corAns];   // 正答
   qa.choices  = [];
@@ -291,26 +298,82 @@ function addQAtoForm(form, qa, config) {
 }
 
 /**
+ * 作成フォームに関する履歴を出力します
+ * @param {Object} from   フォームオブジェクト
+ * @param {Object} config 設定値オブジェクト
+ */
+function recordQAFormHistory(form, config) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const recSht = ss.getSheetByName(config.recdSName);
+  const recArr = recSht.getDataRange().getValues();
+
+  // 記録シートが空の場合（length=1）、ヘッダを記入
+  if (recArr.length < 2) {
+    recHead = config.recdHeadr.split(',');
+    recSht.appendRow(recHead);
+  };
+
+  const now = new Date();
+  const nw = Utilities.formatDate(now, 'Asia/Tokyo', 'yyyy/MM/dd HH:mm:ss');
+  const rm = config.recdModeS;
+  const ft = form.getTitle();
+  const rc = config.mailRcpnt;
+  const fi = form.getId();
+  const fu = form.getPublishedUrl();  // 短縮URLは一意の値ではないので長い方を記録
+  const fe = form.getEditUrl();
+
+  // 設問を取得
+  const it = [];
+  const itemGot = form.getItems(FormApp.ItemType.MULTIPLE_CHOICE);
+  itemGot.forEach( item => it.push(item.getTitle()) );
+
+  // シートに記録
+  const recLine = [ nw, rm, ft, ...it, rc, fi, fu, fe ]
+  recSht.appendRow(recLine);
+
+}
+
+/**
  * 作成されたフォームURLをメールで通知する
  * @param {string} url    フォームURL
  * @param {Object} config 設定値オブジェクト
  */
 function sendUrlbyMail(url, config) {
 
+  // *** debug ***
+  // 'config'から設定値を取得;
+  // var config = {};
+  // config = initConfig('config', config);
+  // *** debug ***
+
   const recipient = config.mailRcpnt;
   const subject   = config.mailSbjct;
+  const bcc = [];
 
+  // 記入シートの記載事項から、メール送付先リストを取得したい
+  const shtBcc = SpreadsheetApp.openById(config.mailRcpId);
+  const arrBcc = shtBcc.getSheetByName(config.mailRcpSN).getDataRange().getValues();
+
+  // 希望者行を抽出
+  const BccList = arrBcc.filter( line => { return line[1] == config.mailRcpAp });
+  BccList.forEach( line => bcc.push(line[0]) );
+
+  // メールステータスを生成
   let body = '';
   body += config.mailBody1 + '\n';
   body += url + '\n\n';
   body += config.mailBody2;
   
   const options = {
-    name: config.mailOname,
+    // name: config.mailOname, // 不要とおもわれる
+    bcc:     bcc.toString(),
     noReply: toBoolean(config.mailOnorp)
   }
 
+  // *** debug ***
+  // GmailApp.createDraft(recipient, subject, body, options);
   GmailApp.sendEmail(recipient, subject, body, options);
+
 }
 
 
@@ -332,6 +395,9 @@ function buttonOnConfigSht() {
   // 'config'から設定値を取得;
   var config = {};
   config = initConfig('config', config);
+
+  config.recdModeS = 'テスト（ボタンから実行）';
+
 
   // クイズを作成
   // NOTE:クイズ = フォーム + QAs = フォーム + QA1 + ... + QAn
