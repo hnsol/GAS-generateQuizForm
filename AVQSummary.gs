@@ -229,6 +229,10 @@ function generateFbSheet(arrSmr, config) {
  */
 function sendShtEachAdress(array, config) {
 
+  // ヘッダは除いておく（あとで使うためここで変数に保管）
+  const arrHead = array.shift();
+  const YMD     = getYYMMDD_(new Date());
+
   // メールアドレスの配列を抽出
   const arrRcp = listupRecipient(config.mailRcpId, config.mailRcpSN , 2, config.mailRcpAp);
 
@@ -239,51 +243,72 @@ function sendShtEachAdress(array, config) {
     // const dummyMail = 'm-iida@avergence.co.jp';
     // const dummyMaCc = 'm-iida@avergence.co.jp';
 
-    // TODO: 'xxxx <b-ccc@avergence.co.jp>'から'b-ccc@...jp'を取得
-    const mailaddress = '';
+    // console.log(reg.exec(row));
+    // console.log(reg.toString(row));
+    // console.log(row.match(/<(.+)>/)[1]);
+    // console.log(reg.exec(row));
+    // console.log(reg.exec(row)[1]);
+    // const mailaddress = reg.exec(row);
+    // const mailaddress = reg.toString(row);
+    // const reg = /<(.+)>/;
+    // const mailaddress = reg.exec(row)[1];
+    
+    // '猿飛佐助 <b-ccc@ddd.co.jp>'ならば
+    // fullname = '猿飛佐助', username = 'b-ccc'
+    // mailaddress = 'b-ccc@ddd.co.jp'
+    const reg = /(^.+)<(.+)>/;
+    // console.log(reg.exec(row)[1], reg.exec(row)[2]);
+    const fullname = reg.exec(row)[1].trim();
+    const mailaddress = reg.exec(row)[2];
+    const username = mailaddress.match(/(^.+)@/)[1];
+    // console.log(fullname, mailaddress, username);
 
-    const arrHead = array.shift();
-    const arrFltd = array.filter( line => { return line[3] === mailadress; } );
-
+    const arrFltd = array.filter( line => { return line[3] === mailaddress; } );
     arrFltd.unshift(arrHead);
 
-    // 暫定措置、改行を取り除く　←　データの持たせ方を再考する必要がある
+    // 暫定措置、改行を取り除く　←　TODO:データの持たせ方を再考する必要がある
     arrFltd.forEach( (line, idRow) => {
       line.forEach( (value, idCol) => {
-        // console.log(value, value.toString().replace(/\n+/g, '!'));
         arrFltd[idRow][idCol] = value.toString().replace(/\n+/g, '');
       })
     })
 
     // スプレッドシート（CSV）を作成
     // blobでつくるが、ドライブに置いたりはしない
-    // TODO: ファイル名の文字列を作成すること（@より左、日付、SJISなど）
+    
+    const filename = YMD + username + '_SJIS.csv'; 
     const csv  = arrFltd.reduce((str, row) => str + '\n' + row);
-    const blob = Utilities.newBlob('', MimeType.CSV, 'testdata_S-JIS.csv')
+    // const blob = Utilities.newBlob('', MimeType.CSV, 'testdata_S-JIS.csv')
+    const blob = Utilities.newBlob('', MimeType.CSV, filename)
       .setDataFromString(csv, 'Shift-JIS');
 
     // メールで送付
     // TODO: いろいろベタ打ちなので直すこと
-    const recipient = mailaddress;
-    const subject   = 'test: sending csv...';
+    // const recipient = mailaddress;
+    const recipient = row;
+    // const subject   = 'test: sending csv...';
+    const subject   = config.respAgMsb + '（' + username + '）';
+  
 
+    // let body = '';
+    // body += 'テストメールです\n';
+    // body += '添付でCSVを送ります';
     let body = '';
-    body += 'テストメールです\n';
-    body += '添付でCSVを送ります';
+    body += fullname + 'さま\n\n'
+    body += config.respAgMbd;
     
     const options = {
-      cc: dummyMaCc,
+      cc: config.respAgMcc,
       noReply: toBoolean(config.mailOnorp),
       attachments: blob
     };
 
+    // GmailApp.sendEmail(recipient, subject, body, options);
+    GmailApp.createDraft(recipient, subject, body, options);
+
   });
 
-
-  GmailApp.sendEmail(recipient, subject, body, options);
-
 }
-
 
 /**
  * 新規シートをかしこく挿入します
