@@ -19,7 +19,7 @@ function generateFbSheetandMail() {
   config.respSSrod = config.respSSrod.split(','); // HACK:配列化
 
   // 回答を集約し、配列にして返す
-  const arrSmr = aggregateRespose(config);
+  const arrSmr = aggregateResponse(config);
 
   // 回答を集計シートに書き込み
   if (toBoolean(config.respDBwsh)) {
@@ -48,15 +48,11 @@ function transpose2dArray(arr) {
  * @return {Array} arrSmr   集約済み配列
  * NOTE: ここはfunctionに切り分けないほうが見通しがいいと思われる
  */
-function aggregateRespose(config) {
-
-  // transpose関数 // NOTE: 関数化したほうがいい気もするが、ラクなのでこういう使いかたを……
-  // const transpose = a => a[0].map((_, c) => a.map(r => r[c]));
+function aggregateResponse(config) {
 
   // 問題DBから配列を取得
   const shtQdb  = SpreadsheetApp.openById(config.idPrblmDB);
   const arrQdb  = shtQdb.getSheetByName(config.quizDBSht).getDataRange().getValues();
-  // const arrQdbT = transpose(arrQdb);
   const arrQdbT = transpose2dArray(arrQdb);
 
   // 【A: 回答DBから配列を取得】
@@ -221,7 +217,6 @@ function generateFbSheet(arrSmr, config) {
 
 }
 
-
 /**
  * メールで各人に送ります
  * @param {Array} array     操作対象の2次元配列（集計シートへ書き出した配列）
@@ -291,22 +286,5 @@ function sendShtEachAdress(array, config) {
   });
 
 
-}
-
-/**
- * 新規シートをかしこく挿入します
- * @param {string} shtName  新規シートの名前
- * @return {Object}         作成した新規シートオブジェクト
- */
-function smartInsSheet(shtName) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-
-  // コピー先のシートがすでに存在する場合は、削除する
-  var prevSht = ss.getSheetByName(shtName);
-  if (prevSht !== null) ss.deleteSheet(prevSht);
-
-  ss.insertSheet(shtName, ss.getNumSheets());
-
-  return ss.getSheetByName(shtName);
 }
 
