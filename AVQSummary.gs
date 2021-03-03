@@ -8,11 +8,10 @@
  * 頻度B→シートに書き出し＋　人ごとに集約してメール送付
  * TODO: パラメータを渡して動作を変えられるようにしておく
  */
-// function firstTrial() {
 function generateFbSheetandMail() {
 
   // 'config'から設定値を取得し、必要なものは配列化
-  // TODO: エラーチェックも入れたいので、初期作業は関数化
+  // TODO: エラーチェックも入れたいので、初期作業は関数化したい
   // 仮定していること……集計シートの存在、各シートの存在
   var config = {};
   config = initConfig('config', config);
@@ -23,11 +22,24 @@ function generateFbSheetandMail() {
   const arrSmr = aggregateRespose(config);
 
   // 回答を集計シートに書き込み
-  generateFbSheet(arrSmr, config);
+  if (toBoolean(config.respDBwsh)) {
+    generateFbSheet(arrSmr, config);
+  };
 
   // 回答をメールで送付
-  sendShtEachAdress(arrSmr, config);  
+  if (toBoolean(config.respDBsml)) {
+    sendShtEachAdress(arrSmr, config);  
+  }
+}
 
+/**
+ * 転置関数
+ * @param {Array} arr 2次元配列
+ * @return {Array}    2次元配列（行列入れ替え済み）
+ */
+// function transpose(arr) {
+function transpose2dArray(arr) {
+  return arr[0].map((_, c) => arr.map(r => r[c]));
 }
 
 /**
@@ -39,12 +51,13 @@ function generateFbSheetandMail() {
 function aggregateRespose(config) {
 
   // transpose関数 // NOTE: 関数化したほうがいい気もするが、ラクなのでこういう使いかたを……
-  const transpose = a => a[0].map((_, c) => a.map(r => r[c]));
+  // const transpose = a => a[0].map((_, c) => a.map(r => r[c]));
 
   // 問題DBから配列を取得
   const shtQdb  = SpreadsheetApp.openById(config.idPrblmDB);
   const arrQdb  = shtQdb.getSheetByName(config.quizDBSht).getDataRange().getValues();
-  const arrQdbT = transpose(arrQdb);
+  // const arrQdbT = transpose(arrQdb);
+  const arrQdbT = transpose2dArray(arrQdb);
 
   // 【A: 回答DBから配列を取得】
 
@@ -173,15 +186,17 @@ function aggregateRespose(config) {
  */
 function extractRows(array, rowsExt) {
   // 行列入れ替え
-  const transpose = a => a[0].map((_, c) => a.map(r => r[c]));
-  var arrayT = transpose(array);
+  // const transpose = a => a[0].map((_, c) => a.map(r => r[c]));
+  // var arrayT = transpose(array);
+  var arrayT = transpose2dArray(array);
 
   // 抽出
   var arrayCT = [];
   rowsExt.forEach( val => arrayCT.push(arrayT[val]) );
 
   // 行列を入れ替えてリターン
-  return transpose(arrayCT);
+  // return transpose(arrayCT);
+  return transpose2dArray(arrayCT);
 }
 
 
@@ -209,56 +224,61 @@ function generateFbSheet(arrSmr, config) {
 
 /**
  * メールで各人に送ります
- * @param {Array} array     操作対象の2次元配列
+ * @param {Array} array     操作対象の2次元配列（集計シートへ書き出した配列）
  * @param {Object} config   設定値オブジェクト
  */
 function sendShtEachAdress(array, config) {
 
   // メールアドレスの配列を抽出
-  // （これからかく）
+  const arrRcp = listupRecipient(config.mailRcpId, config.mailRcpSN , 2, config.mailRcpAp);
+
   // それぞれのメアドから送付対象配列を作成
-  // （これからかく）
+  arrRcp.forEach( row => {
+    
+    // ダミー：あるメアドから送付対象配列を作成
+    // const dummyMail = 'm-iida@avergence.co.jp';
+    // const dummyMaCc = 'm-iida@avergence.co.jp';
 
-  // ダミー：あるメアドから送付対象配列を作成
-  const dummyMail = 'm-iida@avergence.co.jp';
-  const dummyMaCc = 'm-iida@avergence.co.jp';
+    // TODO: 'xxxx <b-ccc@avergence.co.jp>'から'b-ccc@...jp'を取得
+    const mailaddress = '';
 
-  const arrHead = array.shift();
-  const arrFltd = array.filter( line => {
-    return line[3] === dummyMail;
-    });
+    const arrHead = array.shift();
+    const arrFltd = array.filter( line => { return line[3] === mailadress; } );
 
-  arrFltd.unshift(arrHead);
+    arrFltd.unshift(arrHead);
 
-  // 暫定措置、改行を取り除く　←　データの持たせ方を再考する必要がある
-  arrFltd.forEach( (line, idRow) => {
-    line.forEach( (value, idCol) => {
-      // console.log(value, value.toString().replace(/\n+/g, '!'));
-      arrFltd[idRow][idCol] = value.toString().replace(/\n+/g, '');
+    // 暫定措置、改行を取り除く　←　データの持たせ方を再考する必要がある
+    arrFltd.forEach( (line, idRow) => {
+      line.forEach( (value, idCol) => {
+        // console.log(value, value.toString().replace(/\n+/g, '!'));
+        arrFltd[idRow][idCol] = value.toString().replace(/\n+/g, '');
+      })
     })
-  })
 
-  // スプレッドシート（CSV）を作成
-  // blobでつくるが、ドライブに置いたりはしない
-  // TODO: ファイル名の文字列を作成すること（@より左、日付、SJISなど）
-  const csv  = arrFltd.reduce((str, row) => str + '\n' + row);
-  const blob = Utilities.newBlob('', MimeType.CSV, 'testdata_S-JIS.csv')
-    .setDataFromString(csv, 'Shift-JIS');
+    // スプレッドシート（CSV）を作成
+    // blobでつくるが、ドライブに置いたりはしない
+    // TODO: ファイル名の文字列を作成すること（@より左、日付、SJISなど）
+    const csv  = arrFltd.reduce((str, row) => str + '\n' + row);
+    const blob = Utilities.newBlob('', MimeType.CSV, 'testdata_S-JIS.csv')
+      .setDataFromString(csv, 'Shift-JIS');
 
-  // メールで送付
-  // TODO: いろいろベタ打ちなので直すこと
-  const recipient = dummyMail;
-  const subject   = 'test: sending csv...';
+    // メールで送付
+    // TODO: いろいろベタ打ちなので直すこと
+    const recipient = mailaddress;
+    const subject   = 'test: sending csv...';
 
-  let body = '';
-  body += 'テストメールです\n';
-  body += '添付でCSVを送ります';
-  
-  const options = {
-    cc: dummyMaCc,
-    noReply: toBoolean(config.mailOnorp),
-    attachments: blob
-  };
+    let body = '';
+    body += 'テストメールです\n';
+    body += '添付でCSVを送ります';
+    
+    const options = {
+      cc: dummyMaCc,
+      noReply: toBoolean(config.mailOnorp),
+      attachments: blob
+    };
+
+  });
+
 
   GmailApp.sendEmail(recipient, subject, body, options);
 
