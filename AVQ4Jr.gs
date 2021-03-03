@@ -282,7 +282,7 @@ function addQAtoForm(form, qa, config) {
   .setRequired(toBoolean(config.itemRqird)) // 回答の'必須'
   .setPoints(+config.itemPoint)             // 点数
   .setTitle(qa.title)                       // 質問文
-  // HACK:直打ち、きれいな書き方を思いつけず      //選択肢
+  // HACK:直打ち、きれいな書き方を思いつけず      // 選択肢
   .setChoices([
     item.createChoice(qa.choices[0][0], qa.choices[0][1]), 
     item.createChoice(qa.choices[1][0], qa.choices[1][1]), 
@@ -333,6 +333,7 @@ function recordQAFormHistory(form, config) {
 
 }
 
+
 /**
  * 作成されたフォームURLをメールで通知する
  * @param {string} url    フォームURL
@@ -348,15 +349,19 @@ function sendUrlbyMail(url, config) {
 
   const recipient = config.mailRcpnt;
   const subject   = config.mailSbjct;
-  const bcc = [];
+  // const bcc = [];
+
+  // // 記入シートの記載事項から、メール送付先リストを取得したい
+  // const shtBcc = SpreadsheetApp.openById(config.mailRcpId);
+  // const arrBcc = shtBcc.getSheetByName(config.mailRcpSN).getDataRange().getValues();
+
+  // // 希望者行を抽出
+  // const BccList = arrBcc.filter( line => { return line[1] == config.mailRcpAp });
+  // BccList.forEach( line => bcc.push(line[0]) );
 
   // 記入シートの記載事項から、メール送付先リストを取得したい
-  const shtBcc = SpreadsheetApp.openById(config.mailRcpId);
-  const arrBcc = shtBcc.getSheetByName(config.mailRcpSN).getDataRange().getValues();
-
-  // 希望者行を抽出
-  const BccList = arrBcc.filter( line => { return line[1] == config.mailRcpAp });
-  BccList.forEach( line => bcc.push(line[0]) );
+  // TODO: 要テスト
+  const bcc = listupRecipient(config.mailRcpId, config.mailRcpSN , 1, config.mailRcpAp);
 
   // メールステータスを生成
   let body = '';
@@ -375,6 +380,26 @@ function sendUrlbyMail(url, config) {
   GmailApp.sendEmail(recipient, subject, body, options);
 
 }
+
+/**
+ * メール送付先リストの取得
+ * @param {string} spreadsheetID  リストの入っているスプレッドシートのID
+ * @param {string} sheetName      リストの入っているシートの名称
+ * @param {number} column         判定列（1列目=0）
+ * @param {string} judgeword      判定文字列
+ * @return {Array} arrRcp         抽出したものを返す配列
+ */
+function listupRecipient(spreadsheetID, sheetName, column, judgeword) {
+  const spdSht = SpreadsheetApp.openById(spreadsheetID);
+  const arrBcc = spdSht.getSheetByName(sheetName).getDataRange().getValues();
+
+  // column列がjudgewordである行を抽出
+  const arrRcp = [];
+  const rcpList = arrBcc.filter( line => { return line[column] == judgeword });
+  rcpList.forEach( line => arrRcp.push(line[0]) );
+
+  return arrRcp;
+};
 
 
 /**
@@ -411,3 +436,5 @@ function buttonOnConfigSht() {
     );
 
 }
+
+
