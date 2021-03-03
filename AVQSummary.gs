@@ -226,6 +226,8 @@ function generateFbSheet(arrSmr, config) {
  * メールで各人に送ります
  * @param {Array} array     操作対象の2次元配列（集計シートへ書き出した配列）
  * @param {Object} config   設定値オブジェクト
+ * TODO: エラーハンドリングの追加
+ * TODO： 送信レポートの作成
  */
 function sendShtEachAdress(array, config) {
 
@@ -239,29 +241,14 @@ function sendShtEachAdress(array, config) {
   // それぞれのメアドから送付対象配列を作成
   arrRcp.forEach( row => {
     
-    // ダミー：あるメアドから送付対象配列を作成
-    // const dummyMail = 'm-iida@avergence.co.jp';
-    // const dummyMaCc = 'm-iida@avergence.co.jp';
-
-    // console.log(reg.exec(row));
-    // console.log(reg.toString(row));
-    // console.log(row.match(/<(.+)>/)[1]);
-    // console.log(reg.exec(row));
-    // console.log(reg.exec(row)[1]);
-    // const mailaddress = reg.exec(row);
-    // const mailaddress = reg.toString(row);
-    // const reg = /<(.+)>/;
-    // const mailaddress = reg.exec(row)[1];
-    
+    // 必要な文字列を取得
     // '猿飛佐助 <b-ccc@ddd.co.jp>'ならば
     // fullname = '猿飛佐助', username = 'b-ccc'
     // mailaddress = 'b-ccc@ddd.co.jp'
     const reg = /(^.+)<(.+)>/;
-    // console.log(reg.exec(row)[1], reg.exec(row)[2]);
     const fullname = reg.exec(row)[1].trim();
     const mailaddress = reg.exec(row)[2];
     const username = mailaddress.match(/(^.+)@/)[1];
-    // console.log(fullname, mailaddress, username);
 
     const arrFltd = array.filter( line => { return line[3] === mailaddress; } );
     arrFltd.unshift(arrHead);
@@ -271,28 +258,19 @@ function sendShtEachAdress(array, config) {
       line.forEach( (value, idCol) => {
         arrFltd[idRow][idCol] = value.toString().replace(/\n+/g, '');
       })
-    })
+    });
 
     // スプレッドシート（CSV）を作成
     // blobでつくるが、ドライブに置いたりはしない
-    
     const filename = YMD + username + '_SJIS.csv'; 
     const csv  = arrFltd.reduce((str, row) => str + '\n' + row);
-    // const blob = Utilities.newBlob('', MimeType.CSV, 'testdata_S-JIS.csv')
     const blob = Utilities.newBlob('', MimeType.CSV, filename)
       .setDataFromString(csv, 'Shift-JIS');
 
     // メールで送付
-    // TODO: いろいろベタ打ちなので直すこと
-    // const recipient = mailaddress;
     const recipient = row;
-    // const subject   = 'test: sending csv...';
     const subject   = config.respAgMsb + '（' + username + '）';
   
-
-    // let body = '';
-    // body += 'テストメールです\n';
-    // body += '添付でCSVを送ります';
     let body = '';
     body += fullname + 'さま\n\n'
     body += config.respAgMbd;
@@ -303,10 +281,15 @@ function sendShtEachAdress(array, config) {
       attachments: blob
     };
 
-    // GmailApp.sendEmail(recipient, subject, body, options);
-    GmailApp.createDraft(recipient, subject, body, options);
+    // デバッグオプション：ドラフト作成までで止めることも可能
+    if (toBoolean(config.respAgCdf)) {
+      GmailApp.createDraft(recipient, subject, body, options);
+    } else {
+      GmailApp.sendEmail(recipient, subject, body, options);
+    };
 
   });
+
 
 }
 
