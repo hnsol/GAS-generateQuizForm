@@ -1,5 +1,44 @@
+/******** インタフェースの記述 *********/
+
+/**
+ * 設定シートのボタンの動作を記述します
+ * TODO: DRY原則に反しているので気持ち悪いと思っていますが、とりあえずこのまま……
+ */
+function buttonOnConfigSht() {
+
+  // 開始確認（OKボタン以外は処理を中断）
+  var ui = SpreadsheetApp.getUi();
+  var response = ui.alert(
+    'フォーム作成の開始',
+    'クイズフォームの作成を開始します。よろしいですか？',
+    ui.ButtonSet.OK_CANCEL
+    );
+  if (response !== ui.Button.OK) return;
+
+  // 'config'から設定値を取得;
+  var config = {};
+  config = initConfig('config', config);
+
+  config.recdModeS = 'テスト（ボタンから実行）';
+
+
+  // クイズを作成
+  // NOTE:クイズ = フォーム + QAs
+  //            = フォーム + QA1 + ... + QAn
+  var formUrl = generateQuiz(config);
+
+  // 終了メッセージ
+  var response = ui.alert(
+    '完了しました！',
+    'フォーム作成が完了しました。ご確認ください。',
+    ui.ButtonSet.OK
+    );
+
+}
+
 /**
  * クイズを作成し、URLをメールで送ります
+ * NOTE: 定期的な実行を想定
  */
 function generateQuizandMail() {
 
@@ -8,13 +47,16 @@ function generateQuizandMail() {
   config = initConfig('config', config);
 
   // クイズを作成
-  // NOTE:クイズ = フォーム + QAs = フォーム + QA1 + ... + QAn
+  // NOTE:クイズ = フォーム + QAs
+  //            = フォーム + QA1 + ... + QAn
   var formUrl = generateQuiz(config);
 
   // メールで通知する
   sendUrlbyMail(formUrl, config);
 }
 
+
+/******** 主な関数の記述 *********/
 
 /**
  * 設定値を、設定シートから取り込みます
@@ -28,20 +70,6 @@ function initConfig(shtName, config) {
   return convertSht2Obj(shtConfig);
 }
 
-/**
- * シートからJSONオブジェクトを作成します
- * （1行目はヘッダ、1列目にプロパティ名、2列目にプロパティ値が入っている前提）
- * @param {Object} sheet  シートオブジェクト
- * @return {Object} obj   設定値オブジェクト
- */ 
-function convertSht2Obj(sheet) {
-  const array = sheet.getDataRange().getValues();
-  array.shift();
-  const obj = new Object();
-  array.forEach( line => obj[line[0]] = line[1] );
-  
-  return obj;
-}
 
 /**
  * クイズフォームを作成します（フォーム + QA x n）
@@ -111,17 +139,6 @@ function copyTemplateToNewForm(config) {
   return form;
 }
 
-/**
- * 'YYMMDD_'形式の日付Stringを得る
- * @param {Object}  dt  日付オブジェクト
- * @return {String}     'YYMMDD_'形式の日付String
- */
-function getYYMMDD_(dt) {
-  var YY  = dt.getFullYear().toString().slice(-2); // '21'
-  var MM  = ('0' + (dt.getMonth()+1)).slice(-2);   // '03'
-  var DD  = ('0' + (dt.getDate())).slice(-2);      // '05'
-  return YY + MM + DD + '_';                       // '210305_'
-}
 
 /**
  * フォームのプロパティを設定します
@@ -152,18 +169,6 @@ function setFormProperties(form, config) {
 
 }
 
-
-/**
- * Booleanに変換
- * @param {string} string 変換する文字列
- * console.log(toBoolean('TRUE'));  // true
- * console.log(toBoolean('True'));  // true
- * console.log(toBoolean('False')); // false
- * console.log(toBoolean(123));     // false
- */
-function toBoolean(string) {
-  return string.toLowerCase() === 'true';
-}
 
 /**
  * 問題オブジェクトのコンストラクタ
@@ -335,7 +340,7 @@ function recordQAFormHistory(form, config) {
 
 
 /**
- * 作成されたフォームURLをメールで通知する
+ * 作成されたフォームURLをメールで通知します
  * @param {string} url    フォームURL
  * @param {Object} config 設定値オブジェクト
  */
@@ -402,39 +407,54 @@ function listupRecipient(spreadsheetID, sheetName, column, judgeword) {
 };
 
 
+/******** 汎用性の高い関数の記述 *********/
+
 /**
- * 設定シートのボタンの動作を記述します
- * TODO: DRY原則に反しているので気持ち悪いと思っていますが、とりあえずこのまま……
+ * Booleanに変換
+ * @param {string} string 変換する文字列
+ * console.log(toBoolean('TRUE'));  // true
+ * console.log(toBoolean('True'));  // true
+ * console.log(toBoolean('False')); // false
+ * console.log(toBoolean(123));     // false
  */
-function buttonOnConfigSht() {
-
-  // 開始確認（OKボタン以外は処理を中断）
-  var ui = SpreadsheetApp.getUi();
-  var response = ui.alert(
-    'フォーム作成の開始',
-    'クイズフォームの作成を開始します。よろしいですか？',
-    ui.ButtonSet.OK_CANCEL
-    );
-  if (response !== ui.Button.OK) return;
-
-  // 'config'から設定値を取得;
-  var config = {};
-  config = initConfig('config', config);
-
-  config.recdModeS = 'テスト（ボタンから実行）';
-
-
-  // クイズを作成
-  // NOTE:クイズ = フォーム + QAs = フォーム + QA1 + ... + QAn
-  var formUrl = generateQuiz(config);
-
-  // 終了メッセージ
-  var response = ui.alert(
-    '完了しました！',
-    'フォーム作成が完了しました。ご確認ください。',
-    ui.ButtonSet.OK
-    );
-
+function toBoolean(string) {
+  return string.toLowerCase() === 'true';
 }
 
+/**
+ * シートからJSONオブジェクトを作成します
+ * （1行目はヘッダ、1列目にプロパティ名、2列目にプロパティ値が入っている前提）
+ * @param {Object} sheet  シートオブジェクト
+ * @return {Object} obj   設定値オブジェクト
+ */ 
+function convertSht2Obj(sheet) {
+  const array = sheet.getDataRange().getValues();
+  array.shift();
+  const obj = new Object();
+  array.forEach( line => obj[line[0]] = line[1] );
+  
+  return obj;
+}
+
+/**
+ * 2次元配列を転置します（行と列を入れ替えます）
+ * @param {Array} arr 2次元配列
+ * @return {Array}    2次元配列（行列入れ替え済み）
+ */
+// function transpose(arr) {
+function transpose2dArray(arr) {
+  return arr[0].map((_, c) => arr.map(r => r[c]));
+}
+
+/**
+ * 'YYMMDD_'形式の日付Stringを得ます
+ * @param {Object}  dt  日付オブジェクト
+ * @return {String}     'YYMMDD_'形式の日付String
+ */
+function getYYMMDD_(dt) {
+  var YY  = dt.getFullYear().toString().slice(-2); // '21'
+  var MM  = ('0' + (dt.getMonth()+1)).slice(-2);   // '03'
+  var DD  = ('0' + (dt.getDate())).slice(-2);      // '05'
+  return YY + MM + DD + '_';                       // '210305_'
+}
 

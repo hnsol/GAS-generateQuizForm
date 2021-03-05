@@ -33,16 +33,6 @@ function generateFbSheetandMail() {
 }
 
 /**
- * 転置関数
- * @param {Array} arr 2次元配列
- * @return {Array}    2次元配列（行列入れ替え済み）
- */
-// function transpose(arr) {
-function transpose2dArray(arr) {
-  return arr[0].map((_, c) => arr.map(r => r[c]));
-}
-
-/**
  * 回答DBを集約し、配列化します
  * @param {Object} config   設定値オブジェクト
  * @return {Array} arrSmr   集約済み配列
@@ -77,6 +67,7 @@ function aggregateResponse(config) {
   shtsResR.forEach( sht => {
     arr = sht.getDataRange().getValues(); // 1枚のシートを2次元配列に格納
     if (arr.length > 1) {                 // シートが空の場合は配列化しない（未回答は配列化する）
+    // if (arr.length > 0) {                 // シートが空の場合は配列化しない（未回答シートは配列化）
       arr.forEach( line => {
         const shtName = sht.getName();
         line.push(shtName);               // シート名を右列に追加 
@@ -182,8 +173,6 @@ function aggregateResponse(config) {
  */
 function extractRows(array, rowsExt) {
   // 行列入れ替え
-  // const transpose = a => a[0].map((_, c) => a.map(r => r[c]));
-  // var arrayT = transpose(array);
   var arrayT = transpose2dArray(array);
 
   // 抽出
@@ -191,7 +180,6 @@ function extractRows(array, rowsExt) {
   rowsExt.forEach( val => arrayCT.push(arrayT[val]) );
 
   // 行列を入れ替えてリターン
-  // return transpose(arrayCT);
   return transpose2dArray(arrayCT);
 }
 
