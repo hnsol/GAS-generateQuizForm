@@ -2,21 +2,37 @@
 // arr:2次元配列 arr3:3次元配列
 // ss:スプレッドシート　sht:単体のシート shts:複数のシート
 
+/******** インタフェース ********/
+
 /**
- * 回答(DB)を集約してフィードバックに使用できるようにします
- * 頻度A→シートに全部書き出し　のみ
- * 頻度B→シートに書き出し＋　人ごとに集約してメール送付
- * TODO: パラメータを渡して動作を変えられるようにしておく
+ * 回答(DB)を集約してシートに書き出します
+ * 頻度A→シートに書き出し　のみ
+ * NOTE: 実行時にパラメタを渡せないので関数を分けた
  */
-function generateFbSheetandMail() {
+function execGenerateFbSheet() {
 
   // 'config'から設定値を取得し、必要なものは配列化
-  // TODO: エラーチェックも入れたいので、初期作業は関数化したい
-  // 仮定していること……集計シートの存在、各シートの存在
-  var config = {};
-  config = initConfig('config', config);
-  config.respSShHd = config.respSShHd.split(','); // HACK:配列化
-  config.respSSrod = config.respSSrod.split(','); // HACK:配列化
+  var config = setConfig();
+
+  // 回答を集約し、配列にして返す
+  const arrSmr = aggregateResponse(config);
+
+  // 回答を集計シートに書き込み
+  if (toBoolean(config.respDBwsh)) {
+    generateFbSheet(arrSmr, config);
+  };
+
+}
+
+/**
+ * 回答(DB)を集約してシートに書き出し、回答者毎にメールを送ります
+ * 頻度B→シートに書き出し＋　人ごとに集約してメール送付
+ * NOTE: 実行時にパラメタを渡せないので関数を分けた
+ */
+function execGenerateFbSheetandMail() {
+
+  // 'config'から設定値を取得し、必要なものは配列化
+  var config = setConfig();
 
   // 回答を集約し、配列にして返す
   const arrSmr = aggregateResponse(config);
@@ -31,6 +47,32 @@ function generateFbSheetandMail() {
     sendShtEachAdress(arrSmr, config);  
   }
 }
+
+/******** 主な関数 ********/
+
+/**
+ * Configを整形します
+ * TODO: 初期的なエラー確認もここでやりたい
+ */
+function setConfig() {
+
+  var config = fetchConfig('config');
+  config.respSShHd = config.respSShHd.split(','); // HACK:配列化
+  config.respSSrod = config.respSSrod.split(','); // HACK:配列化
+
+
+  // TODO: 初期的なエラーチェックはここに入れたい
+  // configシートにアクセスできなければ、エラーとみなして対処する？？
+
+  // 回答DBにアクセスできなければ、エラーとみなして対処する
+
+  // 集計シートにアクセスできなければ、エラーとみなして対処する
+
+  // 問題DBにアクセスできなければ、エラーとみなして対処する
+
+  return config;
+}
+
 
 /**
  * 回答DBを集約し、配列化します

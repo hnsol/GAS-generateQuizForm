@@ -17,7 +17,8 @@ function buttonOnConfigSht() {
 
   // 'config'から設定値を取得;
   var config = {};
-  config = initConfig('config', config);
+  // config = fetchConfig('config', config);
+  config = fetchConfig('config');
 
   config.recdModeS = 'テスト（ボタンから実行）';
 
@@ -44,7 +45,8 @@ function generateQuizandMail() {
 
   // 'config'から設定値を取得;
   var config = {};
-  config = initConfig('config', config);
+  // config = fetchConfig('config', config);
+  config = fetchConfig('config');
 
   // クイズを作成
   // NOTE:クイズ = フォーム + QAs
@@ -63,7 +65,8 @@ function generateQuizandMail() {
  * @param {string} shtName  操作対象のシートの名前
  * @param {Object} config   設定値オブジェクト
  */
-function initConfig(shtName, config) {
+// function fetchConfig(shtName, config) {
+function fetchConfig(shtName) {
   const ss      = SpreadsheetApp.getActiveSpreadsheet();
   const shtConfig = ss.getSheetByName(shtName);
 
@@ -349,7 +352,7 @@ function sendUrlbyMail(url, config) {
   // *** debug ***
   // 'config'から設定値を取得;
   // var config = {};
-  // config = initConfig('config', config);
+  // config = fetchConfig('config', config);
   // *** debug ***
 
   const recipient = config.mailRcpnt;
@@ -457,4 +460,7 @@ function getYYMMDD_(dt) {
   var DD  = ('0' + (dt.getDate())).slice(-2);      // '05'
   return YY + MM + DD + '_';                       // '210305_'
 }
+
+
+
 
