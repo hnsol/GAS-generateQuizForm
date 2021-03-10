@@ -378,7 +378,6 @@ function sendUrlbyMail(url, config) {
   body += config.mailBody2;
   
   const options = {
-    // name: config.mailOname, // 不要とおもわれる
     bcc:     bcc.toString(),
     noReply: toBoolean(config.mailOnorp)
   }
