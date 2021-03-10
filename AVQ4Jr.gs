@@ -363,9 +363,18 @@ function sendUrlbyMail(url, config) {
     noReply: toBoolean(config.mailOnorp)
   }
 
+
   // *** debug ***
   // GmailApp.createDraft(recipient, subject, body, options);
-  GmailApp.sendEmail(recipient, subject, body, options);
+  // GmailApp.sendEmail(recipient, subject, body, options);
+
+  // *** debug ***
+  // デバッグオプション：ドラフト作成までで止めることも可能
+  if (toBoolean(config.mailQzCdf)) {
+    GmailApp.createDraft(recipient, subject, body, options);
+  } else {
+    GmailApp.sendEmail(recipient, subject, body, options);
+  };
 
 }
 
