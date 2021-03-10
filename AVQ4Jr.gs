@@ -17,7 +17,6 @@ function buttonOnConfigSht() {
 
   // 'config'から設定値を取得;
   var config = {};
-  // config = fetchConfig('config', config);
   config = fetchConfig('config');
 
   config.recdModeS = 'テスト（ボタンから実行）';
@@ -45,7 +44,6 @@ function generateQuizandMail() {
 
   // 'config'から設定値を取得;
   var config = {};
-  // config = fetchConfig('config', config);
   config = fetchConfig('config');
 
   // クイズを作成
@@ -65,7 +63,6 @@ function generateQuizandMail() {
  * @param {string} shtName  操作対象のシートの名前
  * @param {Object} config   設定値オブジェクト
  */
-// function fetchConfig(shtName, config) {
 function fetchConfig(shtName) {
   const ss      = SpreadsheetApp.getActiveSpreadsheet();
   const shtConfig = ss.getSheetByName(shtName);
@@ -349,26 +346,10 @@ function recordQAFormHistory(form, config) {
  */
 function sendUrlbyMail(url, config) {
 
-  // *** debug ***
-  // 'config'から設定値を取得;
-  // var config = {};
-  // config = fetchConfig('config', config);
-  // *** debug ***
-
   const recipient = config.mailRcpnt;
   const subject   = config.mailSbjct;
-  // const bcc = [];
-
-  // // 記入シートの記載事項から、メール送付先リストを取得したい
-  // const shtBcc = SpreadsheetApp.openById(config.mailRcpId);
-  // const arrBcc = shtBcc.getSheetByName(config.mailRcpSN).getDataRange().getValues();
-
-  // // 希望者行を抽出
-  // const BccList = arrBcc.filter( line => { return line[1] == config.mailRcpAp });
-  // BccList.forEach( line => bcc.push(line[0]) );
 
   // 記入シートの記載事項から、メール送付先リストを取得したい
-  // TODO: 要テスト
   const bcc = listupRecipient(config.mailRcpId, config.mailRcpSN , 1, config.mailRcpAp);
 
   // メールステータスを生成
@@ -459,7 +440,3 @@ function getYYMMDD_(dt) {
   var DD  = ('0' + (dt.getDate())).slice(-2);      // '05'
   return YY + MM + DD + '_';                       // '210305_'
 }
-
-
-
-
