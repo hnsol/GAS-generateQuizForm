@@ -444,8 +444,13 @@ function transpose2dArray(arr) {
  * @return {String}     'YYMMDD_'形式の日付String
  */
 function getYYMMDD_(dt) {
-  var YY  = dt.getFullYear().toString().slice(-2); // '21'
-  var MM  = ('0' + (dt.getMonth()+1)).slice(-2);   // '03'
-  var DD  = ('0' + (dt.getDate())).slice(-2);      // '05'
-  return YY + MM + DD + '_';                       // '210305_'
+  return Utilities.formatDate(dt, 'Asia/Tokyo', 'yyMMdd_');
+
+  // const YYMMDD = Utilities.formatDate(dt, 'Asia/Tokyo', 'yyMMdd_');
+  // return YYMMDD;
+
+  // var YY  = dt.getFullYear().toString().slice(-2); // '21'
+  // var MM  = ('0' + (dt.getMonth()+1)).slice(-2);   // '03'
+  // var DD  = ('0' + (dt.getDate())).slice(-2);      // '05'
+  // return YY + MM + DD + '_';                       // '210305_'
 }
