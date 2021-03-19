@@ -25,7 +25,8 @@ function buttonOnConfigSht() {
   // クイズを作成
   // NOTE:クイズ = フォーム + QAs
   //            = フォーム + QA1 + ... + QAn
-  var formUrl = generateQuiz(config);
+  // var formUrl = generateQuiz(config);
+  var formId = generateQuiz(config);
 
   // 終了メッセージ
   var response = ui.alert(
@@ -49,10 +50,11 @@ function generateQuizandMail() {
   // クイズを作成
   // NOTE:クイズ = フォーム + QAs
   //            = フォーム + QA1 + ... + QAn
-  var formUrl = generateQuiz(config);
+  // var formUrl = generateQuiz(config);
+  var formId = generateQuiz(config);
 
   // メールで通知する
-  sendUrlbyMail(formUrl, config);
+  sendUrlbyMail(formId, config);
 }
 
 
@@ -75,6 +77,7 @@ function fetchConfig(shtName) {
  * クイズフォームを作成します（フォーム + QA x n）
  * @param {Object} config           設定値オブジェクト
  * @return {string} shortenFormUrl  フォームの短縮URL
+ * @return {string} FormId          フォームのID
  */ 
 function generateQuiz(config) {
 
@@ -105,13 +108,19 @@ function generateQuiz(config) {
   });
 
   // 出題記録を作成
-  recordQAFormHistory(form, config);
+  // NOTE: メール作成時に記録作成するよう移動
+  // recordQAFormHistory(form, config);
 
   // フォーム回答ページのURL（短縮）を取得
-  const publishedUrl = form.getPublishedUrl();
-  const shortenFormUrl = form.shortenFormUrl(publishedUrl);
+  // const publishedUrl = form.getPublishedUrl();
+  // const shortenFormUrl = form.shortenFormUrl(publishedUrl);
 
-  return shortenFormUrl;
+  // return shortenFormUrl;
+
+  // フォームのIDを取得して返すように変更
+  const formId = form.getId();
+
+  return formId
 }
 
 
@@ -250,7 +259,7 @@ function pickupRows(numPicks, maxRows) {
 function generateQA(problems, idxRow) {
   const qa = {};
   qa.line     = problems.dataBody[idxRow];      // １行取得
-  qa.title    = '[No:';
+  qa.title    = '[ID:';
   qa.title   += qa.line[problems.idx.unqid];    // 問題UID
   qa.title   += ']' + '\n\n';
   qa.title   += qa.line[problems.idx.title];    // 質問文
@@ -304,10 +313,12 @@ function addQAtoForm(form, qa, config) {
 
 /**
  * 作成フォームに関する履歴を出力します
- * @param {Object} from   フォームオブジェクト
- * @param {Object} config 設定値オブジェクト
+ * @param {Object} from         フォームオブジェクト
+ * @param {Object} config       設定値オブジェクト
+ * @param {string} bccToString  bcc文字列
  */
-function recordQAFormHistory(form, config) {
+// function recordQAFormHistory(form, config) {
+function recordQAFormHistory(form, config, bccToString) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const recSht = ss.getSheetByName(config.recdSName);
   const recArr = recSht.getDataRange().getValues();
@@ -322,7 +333,7 @@ function recordQAFormHistory(form, config) {
   const nw = Utilities.formatDate(now, 'Asia/Tokyo', 'yyyy/MM/dd HH:mm:ss');
   const rm = config.recdModeS;
   const ft = form.getTitle();
-  const rc = config.mailRcpnt;
+  const rc = bccToString;
   const fi = form.getId();
   const fu = form.getPublishedUrl();  // 短縮URLは一意の値ではないので長い方を記録
   const fe = form.getEditUrl();
@@ -344,10 +355,16 @@ function recordQAFormHistory(form, config) {
  * @param {string} url    フォームURL
  * @param {Object} config 設定値オブジェクト
  */
-function sendUrlbyMail(url, config) {
+// function sendUrlbyMail(url, config) {
+function sendUrlbyMail(formId, config) {
 
   const recipient = config.mailRcpnt;
   const subject   = config.mailSbjct;
+
+  // formIdから短縮URLを取得
+  const form = FormApp.openById(formId);
+  const publishedUrl = form.getPublishedUrl();
+  const shortenFormUrl = form.shortenFormUrl(publishedUrl);
 
   // 記入シートの記載事項から、メール送付先リストを取得したい
   const bcc = listupRecipient(config.mailRcpId, config.mailRcpSN , 1, config.mailRcpAp);
@@ -355,18 +372,13 @@ function sendUrlbyMail(url, config) {
   // メールステータスを生成
   let body = '';
   body += config.mailBody1 + '\n';
-  body += url + '\n\n';
+  body += shortenFormUrl + '\n\n';
   body += config.mailBody2;
   
   const options = {
     bcc:     bcc.toString(),
     noReply: toBoolean(config.mailOnorp)
   }
-
-
-  // *** debug ***
-  // GmailApp.createDraft(recipient, subject, body, options);
-  // GmailApp.sendEmail(recipient, subject, body, options);
 
   // *** debug ***
   // デバッグオプション：ドラフト作成までで止めることも可能
@@ -375,6 +387,9 @@ function sendUrlbyMail(url, config) {
   } else {
     GmailApp.sendEmail(recipient, subject, body, options);
   };
+
+  // 出題記録を作成
+  recordQAFormHistory(form, config, bcc.toString());
 
 }
 
