@@ -329,11 +329,12 @@ function recordQAFormHistory(form, config, bccToString) {
     recSht.appendRow(recHead);
   };
 
+  // 書き込み用変数をここでまとめて設定
   const now = new Date();
   const nw = Utilities.formatDate(now, 'Asia/Tokyo', 'yyyy/MM/dd HH:mm:ss');
   const rm = config.recdModeS;
   const ft = form.getTitle();
-  const rc = bccToString;
+  const bc = bccToString;
   const fi = form.getId();
   const fu = form.getPublishedUrl();  // 短縮URLは一意の値ではないので長い方を記録
   const fe = form.getEditUrl();
@@ -344,7 +345,7 @@ function recordQAFormHistory(form, config, bccToString) {
   itemGot.forEach( item => it.push(item.getTitle()) );
 
   // シートに記録
-  const recLine = [ nw, rm, ft, ...it, rc, fi, fu, fe ]
+  const recLine = [ nw, rm, ft, ...it, bc, fi, fu, fe ]
   recSht.appendRow(recLine);
 
 }
@@ -352,7 +353,7 @@ function recordQAFormHistory(form, config, bccToString) {
 
 /**
  * 作成されたフォームURLをメールで通知します
- * @param {string} url    フォームURL
+ * @param {string} formId フォームID
  * @param {Object} config 設定値オブジェクト
  */
 // function sendUrlbyMail(url, config) {
@@ -366,15 +367,15 @@ function sendUrlbyMail(formId, config) {
   const publishedUrl = form.getPublishedUrl();
   const shortenFormUrl = form.shortenFormUrl(publishedUrl);
 
-  // 記入シートの記載事項から、メール送付先リストを取得したい
-  const bcc = listupRecipient(config.mailRcpId, config.mailRcpSN , 1, config.mailRcpAp);
-
-  // メールステータスを生成
+  // bodyを生成
   let body = '';
   body += config.mailBody1 + '\n';
   body += shortenFormUrl + '\n\n';
   body += config.mailBody2;
   
+  // 記入シートの記載事項から、メール送付先リストを取得（送り先はbccが本命）
+  const bcc = listupRecipient(config.mailRcpId, config.mailRcpSN , 1, config.mailRcpAp);
+
   const options = {
     bcc:     bcc.toString(),
     noReply: toBoolean(config.mailOnorp)
@@ -389,6 +390,7 @@ function sendUrlbyMail(formId, config) {
   };
 
   // 出題記録を作成
+  // NOTE: 記録としては、Bccを残しておきたい
   recordQAFormHistory(form, config, bcc.toString());
 
 }
