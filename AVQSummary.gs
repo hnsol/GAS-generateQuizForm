@@ -189,6 +189,9 @@ function aggregateResponse(config) {
       // 各行の最右列に＜正答＞を追加
       line.push(qca);
 
+      // 各行の最右列に＜マルバツ＞を追加
+      line.push( (line[6] == line[8])? '◯' : '×' )
+
     });
     console.log('arr3Agr', arr3Agr);
 
@@ -208,45 +211,46 @@ function aggregateResponse(config) {
   //   arr.forEach( line => line.push(...qtx) ); 
   // });
 
-  // B-2 回答DBの各シートに対し、各行の最右列に＜正答＞を追加
-  arr3Res.forEach( arr => {           // シートを取り出してarrに格納
+  // // B-2 回答DBの各シートに対し、各行の最右列に＜正答＞を追加
+  // arr3Res.forEach( arr => {           // シートを取り出してarrに格納
 
-    // ヘッダ行問題文列を取得し配列化
-    const qid = arr[0].slice(+config.respChBgn, +config.respChEnd);
+  //   // ヘッダ行問題文列を取得し配列化
+  //   const qid = arr[0].slice(+config.respChBgn, +config.respChEnd);
 
-    // 問題文列から、問題IDを取得し配列化　ex: [No:ABCD] -> ABCD
-    qid.forEach( (val, idx, arr) => {
-      arr[idx] = val.substring(config.respQIDBg, config.respQIDEn);
-    });
+  //   // 問題文列から、問題IDを取得し配列化　ex: [No:ABCD] -> ABCD
+  //   qid.forEach( (val, idx, arr) => {
+  //     arr[idx] = val.substring(config.respQIDBg, config.respQIDEn);
+  //   });
 
-    // 問題ID配列→問題DB行（row）→正答の順にmap。どの列にあるかはconfigで指定
-    const qca =
-      qid.map( val => arrQdbT[config.pbidPbuid].indexOf(val))
-        .map( row => arrQdb[row][config.pbidCorAn] )
+  //   // 問題ID配列→問題DB行（row）→正答の順にmap。どの列にあるかはconfigで指定
+  //   const qca =
+  //     qid.map( val => arrQdbT[config.pbidPbuid].indexOf(val))
+  //       .map( row => arrQdb[row][config.pbidCorAn] )
 
-    // arrの各行の最右列に＜正答＞を追加
-    arr.forEach( line => line.push(...qca) );
-  })
+  //   // arrの各行の最右列に＜正答＞を追加
+  //   arr.forEach( line => line.push(...qca) );
+  // })
 
-  // B-3 回答DBの各シートに対し、各行の右側に＜マルバツ＞を追加
-  // TODO:ここはめちゃめちゃ手打ち、config化をすべきとは思う……
-  arr3Res.forEach( arr => {
-    arr.forEach( line => {
-      line.push( (line[3] == line[11])? '◯' : '×' )
-      line.push( (line[4] == line[12])? '◯' : '×' )
-      line.push( (line[5] == line[13])? '◯' : '×' )
-    })
-  })
+  // // B-3 回答DBの各シートに対し、各行の右側に＜マルバツ＞を追加
+  // // TODO:ここはめちゃめちゃ手打ち、config化をすべきとは思う……
+  // arr3Res.forEach( arr => {
+  //   arr.forEach( line => {
+  //     line.push( (line[3] == line[11])? '◯' : '×' )
+  //     line.push( (line[4] == line[12])? '◯' : '×' )
+  //     line.push( (line[5] == line[13])? '◯' : '×' )
+  //   })
+  // })
   
 
   // 【C: 3次元配列→2次元配列とし、アウトプットできるよう仕上げる】
 
-  // C-1 回答DBの各シートに対し、ヘッダ行を取り除く
-  arr3Res.forEach( arr => arr.shift() );
+  // // C-1 回答DBの各シートに対し、ヘッダ行を取り除く
+  // arr3Res.forEach( arr => arr.shift() );
  
   // C-2 回答DBの各シートの、ボディ行を１枚のシートにくっつける
   const arrRes = []; 
-  arr3Res.forEach( arr => arrRes.push(...arr) );
+  // arr3Res.forEach( arr => arrRes.push(...arr) );
+  arr3Agr.forEach( arr => arrRes.push(...arr) );
 
   // C-3 ボディ行のみになった配列をソート
   // TODO: ソート対象が手打ちなので、config化を行うこと
