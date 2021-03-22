@@ -122,7 +122,7 @@ function aggregateResponse(config) {
     }
   });
 
-  console.log('A-3', arr3Res);
+  // console.log('A-3', arr3Res);
  
 
   // 【B: 配列をアウトプットに向けて変換する】
@@ -141,7 +141,7 @@ function aggregateResponse(config) {
     }); 
   })
 
-  console.log('B-0-1', arr3Res);
+  // console.log('B-0-1', arr3Res);
 
   // B-0-2 Q1/A1 RET Q2/A1 ... Qn/Anの形に変える
 
@@ -168,7 +168,7 @@ function aggregateResponse(config) {
     arr3Agr.push(arr2Agr);                  // 3次元配列に格納（シートx行x列）
   });
 
-  console.log('B-0-2', arr3Agr);
+  // console.log('B-0-2', arr3Agr);
 
   // B-0-3 回答DBの各シートに対し、各行の最右列に＜正答＞を追加
   arr3Agr.forEach( arr => {
@@ -179,12 +179,12 @@ function aggregateResponse(config) {
 
       // 問題文列から、問題IDを取得　ex: [No:ABCD] -> ABCD
       const qid = qtext.substring(config.respQIDBg, config.respQIDEn);
-      console.log('qtext, qid: ', qtext, qid);
+      // console.log('qtext, qid: ', qtext, qid);
 
       // 問題ID→問題DB行（row）→正答。問題DBのどの列にあるかはconfigで指定
       const qrw = arrQdbT[config.pbidPbuid].indexOf(qid);
       const qca = arrQdb[qrw][config.pbidCorAn]
-      console.log('qca:', qca);
+      // console.log('qca:', qca);
 
       // 各行の最右列に＜正答＞を追加
       line.push(qca);
@@ -192,55 +192,13 @@ function aggregateResponse(config) {
       // 各行の最右列に＜マルバツ＞を追加
       line.push( (line[6] == line[8])? '◯' : '×' )
 
-    });
-    console.log('arr3Agr', arr3Agr);
+      console.log('line', line)
 
-    console.log('here!');
+    });
+    // console.log('arr3Agr', arr3Agr);
 
   });
 
-
-  // // B-1 回答DBの各シートに対し、各行の最右列に＜問題文＞を追加
-  // // NOTE: 問題文は必ずヘッダ行にある。どの列にあるかはconfigで指定している
-  // arr3Res.forEach( arr => {           // シートを取り出してarrに格納
-
-  //   // ヘッダ行から問題文列を取得し配列化
-  //   const qtx = arr[0].slice(+config.respChBgn, +config.respChEnd); 
-    
-  //   // arrの各行の最右列に＜問題文＞を追加
-  //   arr.forEach( line => line.push(...qtx) ); 
-  // });
-
-  // // B-2 回答DBの各シートに対し、各行の最右列に＜正答＞を追加
-  // arr3Res.forEach( arr => {           // シートを取り出してarrに格納
-
-  //   // ヘッダ行問題文列を取得し配列化
-  //   const qid = arr[0].slice(+config.respChBgn, +config.respChEnd);
-
-  //   // 問題文列から、問題IDを取得し配列化　ex: [No:ABCD] -> ABCD
-  //   qid.forEach( (val, idx, arr) => {
-  //     arr[idx] = val.substring(config.respQIDBg, config.respQIDEn);
-  //   });
-
-  //   // 問題ID配列→問題DB行（row）→正答の順にmap。どの列にあるかはconfigで指定
-  //   const qca =
-  //     qid.map( val => arrQdbT[config.pbidPbuid].indexOf(val))
-  //       .map( row => arrQdb[row][config.pbidCorAn] )
-
-  //   // arrの各行の最右列に＜正答＞を追加
-  //   arr.forEach( line => line.push(...qca) );
-  // })
-
-  // // B-3 回答DBの各シートに対し、各行の右側に＜マルバツ＞を追加
-  // // TODO:ここはめちゃめちゃ手打ち、config化をすべきとは思う……
-  // arr3Res.forEach( arr => {
-  //   arr.forEach( line => {
-  //     line.push( (line[3] == line[11])? '◯' : '×' )
-  //     line.push( (line[4] == line[12])? '◯' : '×' )
-  //     line.push( (line[5] == line[13])? '◯' : '×' )
-  //   })
-  // })
-  
 
   // 【C: 3次元配列→2次元配列とし、アウトプットできるよう仕上げる】
 
@@ -250,20 +208,30 @@ function aggregateResponse(config) {
   // C-2 回答DBの各シートの、ボディ行を１枚のシートにくっつける
   const arrRes = []; 
   // arr3Res.forEach( arr => arrRes.push(...arr) );
-  arr3Agr.forEach( arr => arrRes.push(...arr) );
+  arr3Agr.forEach( arr => {
+    console.log('arr:', arr);
+    arrRes.push(...arr);
+  });
+
+  console.log('arrRes', arrRes);
+
+  console.log('here!');
+
 
   // C-3 ボディ行のみになった配列をソート
   // TODO: ソート対象が手打ちなので、config化を行うこと
   let sc = new Number;
   // 配列をsc列で昇順でソート（sc: Sort Column）
-  sc = 0; // 回答日付
+  // sc = 0; // 回答日付
+  sc = 3; // 回答日付
   arrRes.sort(function(a, b){
 	  if (a[sc] > b[sc]) return 1;
 	  if (a[sc] < b[sc]) return -1;
 	  return 0;
   });
   // 配列をsc列で降順でソート（sc: Sort Column）
-  sc = 1; // メアド
+  // sc = 1; // メアド
+  sc = 4; // メアド
   arrRes.sort(function(a, b){
 	  if (a[sc] > b[sc]) return -1;
 	  if (a[sc] < b[sc]) return 1;
@@ -271,12 +239,17 @@ function aggregateResponse(config) {
   });
 
   // C-4 日付を修正（破壊的変換であることに注意）、
-  arrRes.forEach( line => {
-    line[0] = Utilities.formatDate(line[0], 'Asia/Tokyo', 'yyyy/MM/dd HH:mm:ss');
-  });
+  // arrRes.forEach( line => {
+  //   console.log(line[3]);
+  //   line[3] = Utilities.formatDate(line[3], 'Asia/Tokyo', 'yyyy/MM/dd HH:mm:ss');
+  // });
 
   // C-5 ヘッダ行を追加（文字列はconfigで指定している）
   arrRes.unshift(config.respSShHd);
+
+  console.log(arrRes);
+
+  console.log('here!');
 
   // C-6 残す列を選択し、順番も入れ替え（configで指定している）
   const arrSmr = extractRows(arrRes, config.respSSrod);
