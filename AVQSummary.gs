@@ -125,18 +125,17 @@ function aggregateResponse(config) {
 
   // 【B: 配列をアウトプットに向けて変換する】
 
-  // // B-0-1 回答DBの各シートに対し、Q1/A1/Q2/A2/.../Qn/Anの形に変える
-  // B-0-1 回答DBの各シートに対し、A1/A2/.../An/Q1/Q2.../Qnの形に変える
+  // B-1 回答DBの各シートに対し、A1/A2/.../An/Q1/Q2.../Qnの形に変える
   arr3Res.forEach( arr => {
-    // ヘッダ行から問題文列を取得し配列化
-    const qtx = arr[0].slice(6, 9); 
-    // arrの各行の最右列に＜問題文＞を追加
-    arr.forEach( (line, index) => line.push(...qtx)　); 
+    // ヘッダ行から問題文列を取得し、各行の最右列に問題文を追加
+    // NOTE:Googleフォームの仕様なのでハードコーディングを残す
+    const qtx = arr[0].slice(6,9);
+    arr.forEach( line => line.push(...qtx) ); 
   })
 
   // console.log('B-0-1', arr3Res); // 3x2x12で狙い通り
 
-  // B-0-2 Q1/A1 RET Q2/A1 ... Qn/Anの形に変える
+  // B-2 Q1/A1 <RET> Q2/A1 <RET> ... Qn/Anの形に変える
 
   // 回答DBの各シートに対し、ヘッダ行を取り除く
   arr3Res.forEach( arr => arr.shift() );
@@ -146,17 +145,13 @@ function aggregateResponse(config) {
     
     var arr2Agr = [];
     arr.forEach( line => {
-      // console.log(line[2]);
 
       var lineAgr = [];
       for (var i=1; i<=line[2]; i++) {
-      // console.log('line:', line);
-      lineAgr = line.slice(0,6);  // 共通情報列を取得
-      lineAgr.push(line[5+i]);    // Aiを取得
-      lineAgr.push(line[8+i]);    // Qiを取得
-      // console.log('lineAgr:', lineAgr);
-      arr2Agr.push(lineAgr);
-      // console.log('arr2Agr:', arr2Agr);
+        lineAgr = line.slice(0,6);  // 共通情報列を取得
+        lineAgr.push(line[5+i]);    // Aiを最右列に追加
+        lineAgr.push(line[8+i]);    // Qiを最右列に追加
+        arr2Agr.push(lineAgr);      // 変換先配列に追加
       }
     });
 
@@ -165,31 +160,26 @@ function aggregateResponse(config) {
 
   // console.log('B-0-2', arr3Agr); // 3x3x8で狙い通り
 
-  // B-0-3 回答DBの各シートに対し、各行の最右列に＜正答＞を追加
+  // B-3 回答DBの各シートに対し、各行の最右列に＜正答＞を追加
   arr3Agr.forEach( arr => {
     arr.forEach( line => {
 
-      // ヘッダ行問題文列を取得し配列化
+      // 各行にある問題文を取得
       const qtext = line[7]; // かならず7のところにある（はず）
 
-      // 問題文列から、問題IDを取得　ex: [No:ABCD] -> ABCD
+      // 問題文から問題IDを取得　ex: [No:ABCD] -> ABCD
       const qid = qtext.substring(config.respQIDBg, config.respQIDEn);
-      // console.log('qtext, qid: ', qtext, qid);
 
       // 問題ID→問題DB行（row）→正答。問題DBのどの列にあるかはconfigで指定
       const qrw = arrQdbT[config.pbidPbuid].indexOf(qid);
       const qca = arrQdb[qrw][config.pbidCorAn]
-      // console.log('qca:', qca);
 
-      // 各行の最右列に＜正答＞を追加
+      // 各行の最右列に＜正答＞を追加、さらに＜マルバツ＞追加
       line.push(qca);
-
-      // 各行の最右列に＜マルバツ＞を追加
       line.push( (line[6] == line[8])? '◯' : '×' )
 
-      // console.log('line', line)
-
     });
+    
     // console.log('arr3Agr', arr3Agr); // 3x3x10で狙い通り
 
   });
@@ -197,53 +187,36 @@ function aggregateResponse(config) {
 
   // 【C: 3次元配列→2次元配列とし、アウトプットできるよう仕上げる】
 
-  // // C-1 回答DBの各シートに対し、ヘッダ行を取り除く
-  // arr3Res.forEach( arr => arr.shift() );
- 
-  // C-2 回答DBの各シートの、ボディ行を１枚のシートにくっつける
+  // C-1 回答DBの各シートの、ボディ行を１枚のシートにくっつける
   const arrRes = []; 
-  arr3Agr.forEach( arr => {
-    console.log('arr:', arr);
-    arrRes.push(...arr);
-  });
+  arr3Agr.forEach( arr => arrRes.push(...arr) );
 
-  console.log('arrRes', arrRes);
+  // console.log('arrRes', arrRes);
 
-  console.log('here!');
-
-
-  // C-3 ボディ行のみになった配列をソート
-  // TODO: ソート対象が手打ちなので、config化を行うこと
+  // C-2 ボディ行のみになった配列をソート
   let sc = new Number;
   // 配列をsc列で昇順でソート（sc: Sort Column）
-  // sc = 0; // 回答日付
-  sc = 3; // 回答日付
+  sc = config.respSSrTs; // 回答日付
   arrRes.sort(function(a, b){
 	  if (a[sc] > b[sc]) return 1;
 	  if (a[sc] < b[sc]) return -1;
 	  return 0;
   });
   // 配列をsc列で降順でソート（sc: Sort Column）
-  // sc = 1; // メアド
-  sc = 4; // メアド
+  sc = config.respSSrMl; // メアド
   arrRes.sort(function(a, b){
 	  if (a[sc] > b[sc]) return -1;
 	  if (a[sc] < b[sc]) return 1;
 	  return 0;
   });
 
-  // C-4 日付を修正（破壊的変換であることに注意）、
-  // arrRes.forEach( line => {
-  //   console.log(line[3]);
-  //   line[3] = Utilities.formatDate(line[3], 'Asia/Tokyo', 'yyyy/MM/dd HH:mm:ss');
-  // });
+  // C-3 日付を修正（破壊的変換であることに注意）
+  arrRes.forEach( line => {
+    line[3] = Utilities.formatDate(line[3], 'Asia/Tokyo', 'yyyy/MM/dd HH:mm:ss');
+  });
 
   // C-5 ヘッダ行を追加（文字列はconfigで指定している）
   arrRes.unshift(config.respSShHd);
-
-  console.log(arrRes);
-
-  console.log('here!');
 
   // C-6 残す列を選択し、順番も入れ替え（configで指定している）
   const arrSmr = extractRows(arrRes, config.respSSrod);
@@ -324,7 +297,7 @@ function sendShtEachAdress(array, config) {
     const arrFltd = array.filter( line => { return line[3] === mailaddress; } );
     arrFltd.unshift(arrHead);
 
-    // 暫定措置、改行を取り除く　←　TODO:データの持たせ方を再考する必要がある
+    // HACK: 暫定措置、改行を取り除く　←　NOTE: データの持たせ方を再考する必要があるか？
     arrFltd.forEach( (line, idRow) => {
       line.forEach( (value, idCol) => {
         arrFltd[idRow][idCol] = value.toString().replace(/\n+/g, '');
