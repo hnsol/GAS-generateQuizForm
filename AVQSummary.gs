@@ -179,7 +179,7 @@ function aggregateResponse(config) {
       line.push( (line[6] == line[8])? '◯' : '×' )
 
     });
-    
+
     // console.log('arr3Agr', arr3Agr); // 3x3x10で狙い通り
 
   });
@@ -188,12 +188,15 @@ function aggregateResponse(config) {
   // 【C: 3次元配列→2次元配列とし、アウトプットできるよう仕上げる】
 
   // C-1 回答DBの各シートの、ボディ行を１枚のシートにくっつける
-  const arrRes = []; 
-  arr3Agr.forEach( arr => arrRes.push(...arr) );
+  const arrConc = []; 
+  arr3Agr.forEach( arr => arrConc.push(...arr) );
+
+  // C-2 順番を入れ替え（configで指定している）
+  const arrRes = exchangeRows(arrConc, config.respSSrod);
 
   // console.log('arrRes', arrRes);
 
-  // C-2 ボディ行のみになった配列をソート
+  // C-3 ソート（日付→メアド）
   let sc = new Number;
   // 配列をsc列で昇順でソート（sc: Sort Column）
   sc = config.respSSrTs; // 回答日付
@@ -210,18 +213,16 @@ function aggregateResponse(config) {
 	  return 0;
   });
 
-  // C-3 日付を修正（破壊的変換であることに注意）
+  // C-4 日付を修正 NOTE:破壊的変換であることに注意
   arrRes.forEach( line => {
-    line[3] = Utilities.formatDate(line[3], 'Asia/Tokyo', 'yyyy/MM/dd HH:mm:ss');
+    line[config.respSSrTs] = 
+      Utilities.formatDate(line[config.respSSrTs], 'Asia/Tokyo', 'yyyy/MM/dd HH:mm:ss');
   });
 
   // C-5 ヘッダ行を追加（文字列はconfigで指定している）
   arrRes.unshift(config.respSShHd);
 
-  // C-6 残す列を選択し、順番も入れ替え（configで指定している）
-  const arrSmr = extractRows(arrRes, config.respSSrod);
-
-  return arrSmr;
+  return arrRes;
 
 }
 
@@ -229,16 +230,17 @@ function aggregateResponse(config) {
 /**
  * 必要な行を抽出します
  * @param {Array} array     操作対象の2次元配列
- * @param {string} rowsExt  抽出する列 like [ '0', '8', '12', '13', '25' ]
+ * @param {string} rowsEx   抽出する列 like [ '0', '8', '12', '13', '25' ]
  * @return {Array}          抽出後の2次元配列
  */
-function extractRows(array, rowsExt) {
+// function extractRows(array, rowsEx) {
+function exchangeRows(array, rowsEx) {
   // 行列入れ替え
   var arrayT = transpose2dArray(array);
 
-  // 抽出
+  // 順番の入れ替え
   var arrayCT = [];
-  rowsExt.forEach( val => arrayCT.push(arrayT[val]) );
+  rowsEx.forEach( val => arrayCT.push(arrayT[val]) );
 
   // 行列を入れ替えてリターン
   return transpose2dArray(arrayCT);
