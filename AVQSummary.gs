@@ -8,21 +8,22 @@
  * 回答(DB)を集約してシートに書き出します
  * 頻度A→シートに書き出し　のみ
  * NOTE: 実行時にパラメタを渡せないので関数を分けた
+ * NOTE: 不使用が決定
  */
-function execGenerateFbSheet() {
+// function execGenerateFbSheet() {
 
-  // 'config'から設定値を取得し、必要なものは配列化
-  var config = setConfig();
+//   // 'config'から設定値を取得し、必要なものは配列化
+//   var config = setConfig();
 
-  // 回答を集約し、配列にして返す
-  const arrSmr = aggregateResponse(config);
+//   // 回答を集約し、配列にして返す
+//   const arrSmr = aggregateResponse(config);
 
-  // 回答を集計シートに書き込み
-  if (toBoolean(config.respDBwsh)) {
-    generateFbSheet(arrSmr, config);
-  };
+//   // 回答を集計シートに書き込み
+//   if (toBoolean(config.respDBwsh)) {
+//     generateFbSheet(arrSmr, config);
+//   };
 
-}
+// }
 
 /**
  * 回答(DB)を集約してシートに書き出し、回答者毎にメールを送ります
@@ -108,30 +109,104 @@ function aggregateResponse(config) {
   let arr = [];
   shtsResR.forEach( sht => {
     arr = sht.getDataRange().getValues(); // 1枚のシートを2次元配列に格納
-    if (arr.length > 1) {                 // シートが空の場合は配列化しない（未回答は配列化する）
-    // if (arr.length > 0) {                 // シートが空の場合は配列化しない（未回答シートは配列化）
+    if (arr.length > 1) {                 // シートが空の場合は配列化しない
       arr.forEach( line => {
         const shtName = sht.getName();
-        line.push(shtName);               // シート名を右列に追加 
-        line.push(objFormTitle[shtName]); // フォームタイトルを右列に追加
+        // line.push(shtName);               // シート名を右列に追加
+        // line.push(objFormTitle[shtName]); // フォームタイトルを右列に追加
+        line.unshift(line.length - 3);        // 設問数を左列に追加
+        line.unshift(objFormTitle[shtName]);  // フォームタイトルを左列に追加
+        line.unshift(shtName);                // シート名を左列に追加
       })
       arr3Res.push(arr);                  // 3次元配列に格納（シートx行x列）
     }
   });
 
+  console.log('A-3', arr3Res);
  
+
   // 【B: 配列をアウトプットに向けて変換する】
 
-  // B-1 回答DBの各シートに対し、各行の最右列に＜問題文＞を追加
-  // NOTE: 問題文は必ずヘッダ行にある。どの列にあるかはconfigで指定している
-  arr3Res.forEach( arr => {           // シートを取り出してarrに格納
-
+  // // B-0-1 回答DBの各シートに対し、Q1/A1/Q2/A2/.../Qn/Anの形に変える
+  // B-0-1 回答DBの各シートに対し、A1/A2/.../An/Q1/Q2.../Qnの形に変える
+  arr3Res.forEach( arr => {
     // ヘッダ行から問題文列を取得し配列化
-    const qtx = arr[0].slice(+config.respChBgn, +config.respChEnd); 
-    
+    const qtx = arr[0].slice(6, 9); 
     // arrの各行の最右列に＜問題文＞を追加
-    arr.forEach( line => line.push(...qtx) ); 
+    arr.forEach( (line, index) => {
+      line.push(...qtx)
+      // console.log(index, line[2], index%line[2]);
+      // line[6] = line[6 + index%line[2] ];
+      // line[7] = line[9 + index%line[2] ];
+    }); 
+  })
+
+  console.log('B-0-1', arr3Res);
+
+  // B-0-2 Q1/A1 RET Q2/A1 ... Qn/Anの形に変える
+
+  // 回答DBの各シートに対し、ヘッダ行を取り除く
+  arr3Res.forEach( arr => arr.shift() );
+
+  var arr3Agr = [];
+  var arr2Agr = [];
+  var lineAgr = [];
+
+  arr3Res.forEach( arr => {
+    arr.forEach( line => {
+      // console.log(line[2]);
+      for (var i=1; i<=line[2]; i++) {
+      // console.log('line:', line);
+      lineAgr = line.slice(0,6);  // 共通情報列を取得
+      lineAgr.push(line[5+i]);    // Aiを取得
+      lineAgr.push(line[8+i]);    // Qiを取得
+      // console.log('lineAgr:', lineAgr);
+      arr2Agr.push(lineAgr);
+      // console.log('arr2Agr:', arr2Agr);
+      }
+    });
+    arr3Agr.push(arr2Agr);                  // 3次元配列に格納（シートx行x列）
   });
+
+  console.log('B-0-2', arr3Agr);
+
+  // B-0-3 回答DBの各シートに対し、各行の最右列に＜正答＞を追加
+  arr3Agr.forEach( arr => {
+    arr.forEach( line => {
+
+      // ヘッダ行問題文列を取得し配列化
+      const qtext = line[7]; // かならず7のところにある（はず）
+
+      // 問題文列から、問題IDを取得　ex: [No:ABCD] -> ABCD
+      const qid = qtext.substring(config.respQIDBg, config.respQIDEn);
+      console.log('qtext, qid: ', qtext, qid);
+
+      // 問題ID→問題DB行（row）→正答。問題DBのどの列にあるかはconfigで指定
+      const qrw = arrQdbT[config.pbidPbuid].indexOf(qid);
+      const qca = arrQdb[qrw][config.pbidCorAn]
+      console.log('qca:', qca);
+
+      // 各行の最右列に＜正答＞を追加
+      line.push(qca);
+
+    });
+    console.log('arr3Agr', arr3Agr);
+
+    console.log('here!');
+
+  });
+
+
+  // // B-1 回答DBの各シートに対し、各行の最右列に＜問題文＞を追加
+  // // NOTE: 問題文は必ずヘッダ行にある。どの列にあるかはconfigで指定している
+  // arr3Res.forEach( arr => {           // シートを取り出してarrに格納
+
+  //   // ヘッダ行から問題文列を取得し配列化
+  //   const qtx = arr[0].slice(+config.respChBgn, +config.respChEnd); 
+    
+  //   // arrの各行の最右列に＜問題文＞を追加
+  //   arr.forEach( line => line.push(...qtx) ); 
+  // });
 
   // B-2 回答DBの各シートに対し、各行の最右列に＜正答＞を追加
   arr3Res.forEach( arr => {           // シートを取り出してarrに格納
