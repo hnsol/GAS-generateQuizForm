@@ -296,7 +296,9 @@ function sendShtEachAdress(array, config) {
     const mailaddress = reg.exec(row)[2];
     const username = mailaddress.match(/(^.+)@/)[1];
 
-    const arrFltd = array.filter( line => { return line[3] === mailaddress; } );
+    // 上記メアドに一致する行を抽出し、ヘッダを復活させる
+    // const arrFltd = array.filter( line => { return line[3] === mailaddress; } );
+    const arrFltd = array.filter( line => { return line[config.respSSrMl] === mailaddress; } );
     arrFltd.unshift(arrHead);
 
     // HACK: 暫定措置、改行を取り除く　←　NOTE: データの持たせ方を再考する必要があるか？
