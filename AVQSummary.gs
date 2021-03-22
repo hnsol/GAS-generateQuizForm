@@ -112,8 +112,6 @@ function aggregateResponse(config) {
     if (arr.length > 1) {                 // シートが空の場合は配列化しない
       arr.forEach( line => {
         const shtName = sht.getName();
-        // line.push(shtName);               // シート名を右列に追加
-        // line.push(objFormTitle[shtName]); // フォームタイトルを右列に追加
         line.unshift(line.length - 3);        // 設問数を左列に追加
         line.unshift(objFormTitle[shtName]);  // フォームタイトルを左列に追加
         line.unshift(shtName);                // シート名を左列に追加
@@ -133,15 +131,10 @@ function aggregateResponse(config) {
     // ヘッダ行から問題文列を取得し配列化
     const qtx = arr[0].slice(6, 9); 
     // arrの各行の最右列に＜問題文＞を追加
-    arr.forEach( (line, index) => {
-      line.push(...qtx)
-      // console.log(index, line[2], index%line[2]);
-      // line[6] = line[6 + index%line[2] ];
-      // line[7] = line[9 + index%line[2] ];
-    }); 
+    arr.forEach( (line, index) => line.push(...qtx)　); 
   })
 
-  // console.log('B-0-1', arr3Res);
+  // console.log('B-0-1', arr3Res); // 3x2x12で狙い通り
 
   // B-0-2 Q1/A1 RET Q2/A1 ... Qn/Anの形に変える
 
@@ -149,12 +142,13 @@ function aggregateResponse(config) {
   arr3Res.forEach( arr => arr.shift() );
 
   var arr3Agr = [];
-  var arr2Agr = [];
-  var lineAgr = [];
-
   arr3Res.forEach( arr => {
+    
+    var arr2Agr = [];
     arr.forEach( line => {
       // console.log(line[2]);
+
+      var lineAgr = [];
       for (var i=1; i<=line[2]; i++) {
       // console.log('line:', line);
       lineAgr = line.slice(0,6);  // 共通情報列を取得
@@ -165,10 +159,11 @@ function aggregateResponse(config) {
       // console.log('arr2Agr:', arr2Agr);
       }
     });
+
     arr3Agr.push(arr2Agr);                  // 3次元配列に格納（シートx行x列）
   });
 
-  // console.log('B-0-2', arr3Agr);
+  // console.log('B-0-2', arr3Agr); // 3x3x8で狙い通り
 
   // B-0-3 回答DBの各シートに対し、各行の最右列に＜正答＞を追加
   arr3Agr.forEach( arr => {
@@ -192,10 +187,10 @@ function aggregateResponse(config) {
       // 各行の最右列に＜マルバツ＞を追加
       line.push( (line[6] == line[8])? '◯' : '×' )
 
-      console.log('line', line)
+      // console.log('line', line)
 
     });
-    // console.log('arr3Agr', arr3Agr);
+    // console.log('arr3Agr', arr3Agr); // 3x3x10で狙い通り
 
   });
 
@@ -207,7 +202,6 @@ function aggregateResponse(config) {
  
   // C-2 回答DBの各シートの、ボディ行を１枚のシートにくっつける
   const arrRes = []; 
-  // arr3Res.forEach( arr => arrRes.push(...arr) );
   arr3Agr.forEach( arr => {
     console.log('arr:', arr);
     arrRes.push(...arr);
