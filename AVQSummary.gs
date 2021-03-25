@@ -58,8 +58,8 @@ function execGenerateFbSheetandMail() {
 function setConfig() {
 
   var config = fetchConfig('config');
-  config.respSShHd = config.respSShHd.split(','); // HACK:配列化
-  config.respSSrod = config.respSSrod.split(','); // HACK:配列化
+  config.respAgHdr = config.respAgHdr.split(','); // HACK:配列化
+  config.respAgRod = config.respAgRod.split(','); // HACK:配列化
 
 
   // TODO: 初期的なエラーチェックはここに入れたい
@@ -133,7 +133,7 @@ function aggregateResponse(config) {
     // NOTE: arr[0][2]に設問数を入れてあるので、+6してendを指定
     qtx = [];
     qtx = arr[0].slice(6, 6 + arr[0][2]);
-    console.log('qtx:', qtx);
+    // console.log('qtx:', qtx);
 
     // NOTE: arr[0]には問題文が2回入っているが、後で削除するので気にしていない
     arr.forEach( line => line.push(...qtx) ); 
@@ -200,21 +200,21 @@ function aggregateResponse(config) {
   arr3Agr.forEach( arr => arrConc.push(...arr) );
 
   // C-2 順番を入れ替え（configで指定している）
-  const arrRes = exchangeRows(arrConc, config.respSSrod);
+  const arrRes = exchangeRows(arrConc, config.respAgRod);
 
   // console.log('arrRes', arrRes);
 
   // C-3 ソート（日付→メアド）
   let sc = new Number;
   // 配列をsc列で昇順でソート（sc: Sort Column）
-  sc = config.respSSrTs; // 回答日付
+  sc = config.respAgRts; // 回答日付
   arrRes.sort(function(a, b){
 	  if (a[sc] > b[sc]) return 1;
 	  if (a[sc] < b[sc]) return -1;
 	  return 0;
   });
   // 配列をsc列で降順でソート（sc: Sort Column）
-  sc = config.respSSrMl; // メアド
+  sc = config.respAgRml; // メアド
   arrRes.sort(function(a, b){
 	  if (a[sc] > b[sc]) return -1;
 	  if (a[sc] < b[sc]) return 1;
@@ -223,12 +223,12 @@ function aggregateResponse(config) {
 
   // C-4 日付を修正 NOTE:破壊的変換であることに注意
   arrRes.forEach( line => {
-    line[config.respSSrTs] = 
-      Utilities.formatDate(line[config.respSSrTs], 'Asia/Tokyo', 'yyyy/MM/dd HH:mm:ss');
+    line[config.respAgRts] = 
+      Utilities.formatDate(line[config.respAgRts], 'Asia/Tokyo', 'yyyy/MM/dd HH:mm:ss');
   });
 
   // C-5 ヘッダ行を追加（文字列はconfigで指定している）
-  arrRes.unshift(config.respSShHd);
+  arrRes.unshift(config.respAgHdr);
 
   return arrRes;
 
@@ -306,7 +306,7 @@ function sendShtEachAdress(array, config) {
 
     // 上記メアドに一致する行を抽出し、ヘッダを復活させる
     // const arrFltd = array.filter( line => { return line[3] === mailaddress; } );
-    const arrFltd = array.filter( line => { return line[config.respSSrMl] === mailaddress; } );
+    const arrFltd = array.filter( line => { return line[config.respAgRml] === mailaddress; } );
     arrFltd.unshift(arrHead);
 
     // HACK: 暫定措置、改行を取り除く　←　NOTE: データの持たせ方を再考する必要があるか？
