@@ -94,7 +94,7 @@ function aggregateResponse(config) {
   const ssRes   = SpreadsheetApp.openById(config.formDstnt);
   const shtsRes = ssRes.getSheets();
   // NOTE: 集計シートは配列取得対象から取り除いておく（R:Removed）
-  const shtsResR = shtsRes.filter( sht => sht.getName() !== config.respSShNa );
+  const shtsResR = shtsRes.filter( sht => sht.getName() !== config.respAgSna );
 
   // A-2 フォームタイトルを取得してオブジェクト化しておく
   // ex: objFormTitle = { フォームの回答 1: '210207_keikoチャレンジ', ... }
@@ -267,7 +267,7 @@ function generateFbSheet(arrSmr, config) {
 
   // シートに書き込み：シートが存在していることを仮定している
   // NOTE: 過去データを履歴に残しておきたいので、シート削除→新規作成は*しない*
-  const shtSmr = ssRes.getSheetByName(config.respSShNa);
+  const shtSmr = ssRes.getSheetByName(config.respAgSna);
   shtSmr.clear();
   shtSmr
     .getRange(1, 1, arrSmr.length, arrSmr[0].length)
@@ -325,20 +325,20 @@ function sendShtEachAdress(array, config) {
 
     // メールで送付
     const recipient = row;
-    const subject   = config.respAgMsb + '（' + username + '）';
+    const subject   = config.respIvMsb + '（' + username + '）';
   
     let body = '';
     body += fullname + 'さま\n\n'
-    body += config.respAgMbd;
+    body += config.respIvMbd;
     
     const options = {
-      cc: config.respAgMcc,
+      cc: config.respIvMcc,
       noReply: toBoolean(config.mailOnorp),
       attachments: blob
     };
 
     // デバッグオプション：ドラフト作成までで止めることも可能
-    if (toBoolean(config.respAgCdf)) {
+    if (toBoolean(config.respIvCdf)) {
       GmailApp.createDraft(recipient, subject, body, options);
     } else {
       GmailApp.sendEmail(recipient, subject, body, options);
