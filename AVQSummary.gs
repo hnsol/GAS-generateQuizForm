@@ -108,15 +108,15 @@ function aggregateResponse(config) {
   const arr3Res = [];
   let arr = [];
   shtsResR.forEach( sht => {
-    arr = sht.getDataRange().getValues(); // 1枚のシートを2次元配列に格納
-    if (arr.length > 1) {                 // シートが空の場合は配列化しない
+    arr = sht.getDataRange().getValues();     // 1枚のシートを2次元配列に格納
+    if (arr.length > 1) {                     // シートが空の場合は配列化しない
       arr.forEach( line => {
         const shtName = sht.getName();
         line.unshift(line.length - 3);        // 設問数を左列に追加
         line.unshift(objFormTitle[shtName]);  // フォームタイトルを左列に追加
         line.unshift(shtName);                // シート名を左列に追加
       })
-      arr3Res.push(arr);                  // 3次元配列に格納（シートx行x列）
+      arr3Res.push(arr);                      // 3次元配列に格納（シートx行x列）
     }
   });
 
@@ -129,21 +129,17 @@ function aggregateResponse(config) {
   var qtx = [];
   arr3Res.forEach( arr => {
     // ヘッダ行から問題文列を取得し、各行の最右列に問題文を追加
-    // // NOTE:Googleフォームの仕様なのでハードコーディングを残す
-    // const qtx = arr[0].slice(6,9);
-
     // NOTE: 開始が[6]なのはGoogleフォームの仕様
     // NOTE: arr[0][2]に設問数を入れてあるので、+6してendを指定
-    // console.log('arr:', arr);
     qtx = [];
     qtx = arr[0].slice(6, 6 + arr[0][2]);
     console.log('qtx:', qtx);
+
     // NOTE: arr[0]には問題文が2回入っているが、後で削除するので気にしていない
     arr.forEach( line => line.push(...qtx) ); 
-    // console.log('arr:', arr);
   });
 
-  console.log('B-0-1', arr3Res); // 3x2x12で狙い通り
+  // console.log('B-0-1', arr3Res); // 3x2x12で狙い通り
 
   // B-2 Q1/A1 <RET> Q2/A1 <RET> ... Qn/Anの形に変える
 
@@ -168,16 +164,15 @@ function aggregateResponse(config) {
     arr3Agr.push(arr2Agr);                  // 3次元配列に格納（シートx行x列）
   });
 
-  console.log('B-0-2', arr3Agr); // 3x3x8で狙い通り
+  // console.log('B-0-2', arr3Agr); // 3x3x8で狙い通り
 
   // B-3 回答DBの各シートに対し、各行の最右列に＜正答＞を追加
   arr3Agr.forEach( arr => {
     arr.forEach( line => {
 
       // 各行にある問題文を取得
-      const qtext = line[7]; // かならず7のところにある（はず）
-      console.log('line:', line);
-
+      // NOTE: 設問数にかかわらず、問題文は[7]にある
+      const qtext = line[7]; 
 
       // 問題文から問題IDを取得　ex: [No:ABCD] -> ABCD
       const qid = qtext.substring(config.respQIDBg, config.respQIDEn);
