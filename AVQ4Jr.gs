@@ -19,7 +19,8 @@ function buttonOnConfigSht() {
   var config = {};
   config = fetchConfig('config');
 
-  config.recdModeS = 'テスト（ボタンから実行）';
+  // ボタンを押したときに出題履歴は記録されない
+  // config.recdModeS = 'テスト（ボタンから実行）';
 
 
   // クイズを作成
@@ -332,12 +333,12 @@ function recordQAFormHistory(form, config, bccToString) {
   // 書き込み用変数をここでまとめて設定
   const now = new Date();
   const nw = Utilities.formatDate(now, 'Asia/Tokyo', 'yyyy/MM/dd HH:mm:ss');
-  const rm = config.recdModeS;
-  const ft = form.getTitle();
-  const bc = bccToString;
-  const fi = form.getId();
-  const fu = form.getPublishedUrl();  // 短縮URLは一意の値ではないので長い方を記録
-  const fe = form.getEditUrl();
+  const rm = config.recdModeS;        // 記録モード
+  const ft = form.getTitle();         // フォームタイトル
+  const bc = bccToString;             // メール送信先（bcc）
+  const fi = form.getId();            // フォームID
+  const fu = form.getPublishedUrl();  // 回答フォームURL 短縮URLは一意の値でないので長い方を記録
+  const fe = form.getEditUrl();       // 編集フォームURL
 
   // 設問を取得
   const it = [];
@@ -345,7 +346,8 @@ function recordQAFormHistory(form, config, bccToString) {
   itemGot.forEach( item => it.push(item.getTitle()) );
 
   // シートに記録
-  const recLine = [ nw, rm, ft, ...it, bc, fi, fu, fe ]
+  // const recLine = [ nw, rm, ft, ...it, bc, fi, fu, fe ]
+  const recLine = [ nw, rm, ft, bc, fi, fu, fe, ...it ]
   recSht.appendRow(recLine);
 
 }
