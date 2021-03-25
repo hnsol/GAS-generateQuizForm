@@ -126,20 +126,30 @@ function aggregateResponse(config) {
   // 【B: 配列をアウトプットに向けて変換する】
 
   // B-1 回答DBの各シートに対し、A1/A2/.../An/Q1/Q2.../Qnの形に変える
+  var qtx = [];
   arr3Res.forEach( arr => {
     // ヘッダ行から問題文列を取得し、各行の最右列に問題文を追加
-    // NOTE:Googleフォームの仕様なのでハードコーディングを残す
-    const qtx = arr[0].slice(6,9);
-    arr.forEach( line => line.push(...qtx) ); 
-  })
+    // // NOTE:Googleフォームの仕様なのでハードコーディングを残す
+    // const qtx = arr[0].slice(6,9);
 
-  // console.log('B-0-1', arr3Res); // 3x2x12で狙い通り
+    // NOTE: 開始が[6]なのはGoogleフォームの仕様
+    // NOTE: arr[0][2]に設問数を入れてあるので、+6してendを指定
+    // console.log('arr:', arr);
+    qtx = [];
+    qtx = arr[0].slice(6, 6 + arr[0][2]);
+    console.log('qtx:', qtx);
+    // NOTE: arr[0]には問題文が2回入っているが、後で削除するので気にしていない
+    arr.forEach( line => line.push(...qtx) ); 
+    // console.log('arr:', arr);
+  });
+
+  console.log('B-0-1', arr3Res); // 3x2x12で狙い通り
 
   // B-2 Q1/A1 <RET> Q2/A1 <RET> ... Qn/Anの形に変える
 
   // 回答DBの各シートに対し、ヘッダ行を取り除く
   arr3Res.forEach( arr => arr.shift() );
-
+    
   var arr3Agr = [];
   arr3Res.forEach( arr => {
     
@@ -147,18 +157,18 @@ function aggregateResponse(config) {
     arr.forEach( line => {
 
       var lineAgr = [];
-      for (var i=1; i<=line[2]; i++) {
-        lineAgr = line.slice(0,6);  // 共通情報列を取得
-        lineAgr.push(line[5+i]);    // Aiを最右列に追加
-        lineAgr.push(line[8+i]);    // Qiを最右列に追加
-        arr2Agr.push(lineAgr);      // 変換先配列に追加
+      for (var i=1; i<=line[2]; i++) {    // 設問数はline[2]にある
+        lineAgr = line.slice(0,6);        // 共通情報列を取得
+        lineAgr.push(line[5+i]);          // Aiを最右列に追加
+        lineAgr.push(line[5+line[2]+i]);  // Qiを最右列に追加
+        arr2Agr.push(lineAgr);            // 変換先配列に追加
       }
     });
 
     arr3Agr.push(arr2Agr);                  // 3次元配列に格納（シートx行x列）
   });
 
-  // console.log('B-0-2', arr3Agr); // 3x3x8で狙い通り
+  console.log('B-0-2', arr3Agr); // 3x3x8で狙い通り
 
   // B-3 回答DBの各シートに対し、各行の最右列に＜正答＞を追加
   arr3Agr.forEach( arr => {
@@ -166,6 +176,8 @@ function aggregateResponse(config) {
 
       // 各行にある問題文を取得
       const qtext = line[7]; // かならず7のところにある（はず）
+      console.log('line:', line);
+
 
       // 問題文から問題IDを取得　ex: [No:ABCD] -> ABCD
       const qid = qtext.substring(config.respQIDBg, config.respQIDEn);
@@ -175,6 +187,7 @@ function aggregateResponse(config) {
       const qca = arrQdb[qrw][config.pbidCorAn]
 
       // 各行の最右列に＜正答＞を追加、さらに＜マルバツ＞追加
+      // NOTE: 設問数にかかわらず、回答列と正答列が定まるのでハードコーディング
       line.push(qca);
       line.push( (line[6] == line[8])? '◯' : '×' )
 
